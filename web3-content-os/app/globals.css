@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg: #080a09;
+  --bg-soft: #0d100f;
+  --primary: #43ffb0;
+}
+
+html, body { height: 100%; }
+body { @apply bg-bg text-fg antialiased; font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11'; }
+* { border-color: rgba(255, 255, 255, 0.08); }
+
+::selection { background: rgba(67, 255, 176, 0.25); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); border: 3px solid transparent; background-clip: content-box; }
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-bg-card/80 shadow-soft; }
+  .card-hover { @apply transition-colors hover:border-line-strong hover:bg-bg-hover; }
+  .input { @apply w-full rounded-xl border border-line bg-bg-soft px-3.5 py-2.5 text-sm text-fg placeholder:text-fg-dim outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/15 disabled:opacity-50; }
+  .label { @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-fg-muted; }
+  .nav-item { @apply flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] text-fg-muted transition hover:bg-white/[0.04] hover:text-fg; }
+  .nav-item.active { @apply bg-white/[0.06] text-fg; }
+  .nav-section { @apply mb-1 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-dim; }
+  .prose-dark { @apply text-[14px] leading-relaxed text-fg/90; }
+  .prose-dark h1, .prose-dark h2, .prose-dark h3 { @apply mb-2 mt-4 font-semibold text-fg; }
+  .prose-dark h1 { @apply text-xl; }
+  .prose-dark h2 { @apply text-lg; }
+  .prose-dark h3 { @apply text-base; }
+  .prose-dark p { @apply my-2; }
+  .prose-dark ul { @apply my-2 list-disc pl-5; }
+  .prose-dark ol { @apply my-2 list-decimal pl-5; }
+  .prose-dark li { @apply my-0.5; }
+  .prose-dark code { @apply rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[12.5px]; }
+  .prose-dark pre { @apply my-3 overflow-x-auto rounded-xl border border-line bg-bg-soft p-3 text-[12.5px]; }
+  .prose-dark pre code { @apply bg-transparent p-0; }
+  .prose-dark blockquote { @apply my-2 border-l-2 border-primary/50 pl-3 text-fg-muted; }
+  .prose-dark table { @apply my-3 w-full border-collapse text-[13px]; }
+  .prose-dark th, .prose-dark td { @apply border border-line px-2 py-1.5 text-left align-top; }
+  .prose-dark th { @apply bg-white/[0.04] font-medium; }
+  .prose-dark a { @apply text-primary underline-offset-2 hover:underline; }
+  .prose-dark hr { @apply my-4 border-line; }
+  .prose-dark strong { @apply font-semibold text-fg; }
+  .shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%); background-size: 200% 100%; @apply animate-shimmer; }
+}
