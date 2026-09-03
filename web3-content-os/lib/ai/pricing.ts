@@ -49,7 +49,9 @@ export const DEFAULT_MODELS: Record<string, { fast: string; strong: string; long
   anthropic: { fast: 'claude-haiku-4-5', strong: 'claude-opus-5', long: 'claude-sonnet-5' },
   gemini: { fast: 'gemini-2.5-flash', strong: 'gemini-2.5-pro', long: 'gemini-2.5-pro', embedding: 'gemini-embedding-001' },
   openrouter: { fast: 'openai/gpt-4o-mini', strong: 'anthropic/claude-opus-5', long: 'google/gemini-2.5-pro', embedding: 'openai/text-embedding-3-small' },
-  openai_compatible: { fast: 'deepseek-chat', strong: 'deepseek-chat', long: 'deepseek-chat' }
+  openai_compatible: { fast: 'deepseek-chat', strong: 'deepseek-chat', long: 'deepseek-chat' },
+  ollama: { fast: 'qwen2.5:7b', strong: 'qwen2.5:7b', long: 'qwen2.5:7b', embedding: 'bge-m3' },
+  lmstudio: { fast: 'local-model', strong: 'local-model', long: 'local-model' }
 }
 
 export const PROVIDER_META: Record<string, { label: string; baseUrl: string; docs: string; envKey?: string }> = {
@@ -57,5 +59,7 @@ export const PROVIDER_META: Record<string, { label: string; baseUrl: string; doc
   anthropic: { label: 'Anthropic Claude', baseUrl: 'https://api.anthropic.com', docs: 'https://console.anthropic.com/settings/keys', envKey: 'ANTHROPIC_API_KEY' },
   gemini: { label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', docs: 'https://aistudio.google.com/app/apikey', envKey: 'GOOGLE_API_KEY' },
   openrouter: { label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', docs: 'https://openrouter.ai/keys', envKey: 'OPENROUTER_API_KEY' },
-  openai_compatible: { label: 'OpenAI 兼容接口（DeepSeek、Grok、本地模型…）', baseUrl: 'https://api.deepseek.com/v1', docs: '' }
+  openai_compatible: { label: 'OpenAI 兼容接口（DeepSeek、Grok…）', baseUrl: 'https://api.deepseek.com/v1', docs: '' },
+  ollama: { label: 'Ollama（本地模型）', baseUrl: 'http://localhost:11434/v1', docs: 'https://ollama.com' },
+  lmstudio: { label: 'LM Studio（本地模型）', baseUrl: 'http://localhost:1234/v1', docs: 'https://lmstudio.ai' }
 }

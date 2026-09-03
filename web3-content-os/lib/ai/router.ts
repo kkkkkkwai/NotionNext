@@ -2,7 +2,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import { getDb, schema } from '../db'
 import { decrypt } from '../crypto'
 import { DEFAULT_MODELS, PROVIDER_META } from './pricing'
-import { AIError, TASK_TYPES, type ProviderCredentials, type ProviderKind, type TaskType } from './types'
+import { AIError, LOCAL_PROVIDERS, TASK_TYPES, type ProviderCredentials, type ProviderKind, type TaskType } from './types'
 
 export interface ResolvedModel {
   creds: ProviderCredentials
@@ -58,7 +58,7 @@ export async function resolveModel(orgId: string, task: TaskType): Promise<Resol
 
   const toCreds = (p: typeof providers[number]): ProviderCredentials => ({
     kind: p.provider as ProviderKind,
-    apiKey: p.apiKeyEnc ? decrypt(p.apiKeyEnc) : envKeyFor(p.provider as ProviderKind) ?? '',
+    apiKey: p.apiKeyEnc ? decrypt(p.apiKeyEnc) : envKeyFor(p.provider as ProviderKind) ?? (LOCAL_PROVIDERS.includes(p.provider as ProviderKind) ? 'local' : ''),
     baseUrl: p.baseUrl ?? undefined
   })
 

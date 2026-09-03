@@ -1,4 +1,7 @@
-export type ProviderKind = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'openai_compatible'
+export type ProviderKind = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'openai_compatible' | 'ollama' | 'lmstudio'
+
+/** Local providers do not need an API key. */
+export const LOCAL_PROVIDERS: ProviderKind[] = ['ollama', 'lmstudio']
 
 export type ChatRole = 'system' | 'user' | 'assistant'
 export interface ChatMessage { role: ChatRole; content: string }

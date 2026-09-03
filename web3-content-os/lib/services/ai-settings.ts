@@ -3,7 +3,7 @@ import { getDb, schema } from '../db'
 import { decrypt, encrypt, maskKey } from '../crypto'
 import { getAdapter } from '../ai/providers'
 import { DEFAULT_MODELS, PROVIDER_META } from '../ai/pricing'
-import type { ProviderKind } from '../ai/types'
+import { LOCAL_PROVIDERS, type ProviderKind } from '../ai/types'
 
 export async function listProviders(orgId: string) {
   const db = await getDb()
@@ -51,7 +51,7 @@ export async function testProvider(orgId: string, id: string) {
   const db = await getDb()
   const row = await db.query.aiProviders.findFirst({ where: and(eq(schema.aiProviders.id, id), eq(schema.aiProviders.orgId, orgId)) })
   if (!row) throw new Error('Provider 不存在')
-  const apiKey = row.apiKeyEnc ? decrypt(row.apiKeyEnc) : process.env[PROVIDER_META[row.provider]?.envKey ?? ''] ?? ''
+  const apiKey = row.apiKeyEnc ? decrypt(row.apiKeyEnc) : process.env[PROVIDER_META[row.provider]?.envKey ?? ''] ?? (LOCAL_PROVIDERS.includes(row.provider as ProviderKind) ? 'local' : '')
   if (!apiKey) throw new Error('尚未填写 API Key')
   const adapter = getAdapter(row.provider as ProviderKind)
   const creds = { kind: row.provider as ProviderKind, apiKey, baseUrl: row.baseUrl ?? undefined }
