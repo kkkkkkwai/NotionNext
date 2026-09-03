@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
+    instrumentationHook: true,
     serverComponentsExternalPackages: ['@electric-sql/pglite', '@electric-sql/pglite-pgvector', 'pdf-parse', 'mammoth', 'postgres', '@anthropic-ai/sdk']
   },
   webpack: (config) => {

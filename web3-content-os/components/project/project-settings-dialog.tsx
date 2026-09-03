@@ -14,6 +14,23 @@ export function ProjectSettingsDialog({ open, onClose, project }: { open: boolea
   const [form, setForm] = useState({ name: project.name, slogan: project.slogan ?? '', positioning: project.positioning ?? '', industry: project.industry ?? '', website: project.website ?? '', twitter: project.twitter ?? '', telegram: project.telegram ?? '', discord: project.discord ?? '', tokenName: project.tokenName ?? '', tokenSymbol: project.tokenSymbol ?? '', launchDate: project.launchDate ?? '', logoUrl: project.logoUrl ?? '', idea: project.idea ?? '' })
   const [saving, setSaving] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const uploadLogo = async (file: File | undefined) => {
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const r = await api<{ logoUrl: string }>(`/api/projects/${project.id}/logo`, { method: 'POST', body: fd })
+      setForm((f) => ({ ...f, logoUrl: r.logoUrl }))
+      toast.success('Logo uploaded')
+      router.refresh()
+    } catch (e) {
+      toast.error('Upload failed', errorMessage(e))
+    } finally {
+      setUploading(false)
+    }
+  }
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const save = async () => {
     setSaving(true)
@@ -35,7 +52,7 @@ export function ProjectSettingsDialog({ open, onClose, project }: { open: boolea
           <Field label="Name"><Input value={form.name} onChange={set('name')} /></Field>
           <Field label="Slogan"><Input value={form.slogan} onChange={set('slogan')} /></Field>
           <Field label="Industry"><Input value={form.industry} onChange={set('industry')} /></Field>
-          <Field label="Logo URL"><Input value={form.logoUrl} onChange={set('logoUrl')} placeholder="https://…/logo.png" /></Field>
+          <Field label="Logo" hint="Upload PNG/JPG/SVG (max 2MB) or paste a URL"><div className="flex items-center gap-2">{form.logoUrl ? <img src={form.logoUrl} alt="" className="h-9 w-9 rounded-lg object-cover" /> : null}<Input value={form.logoUrl} onChange={set('logoUrl')} placeholder="https://…/logo.png" /><label className="shrink-0"><span className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-line px-3 text-[13px] text-fg hover:bg-white/[0.05]">{uploading ? 'Uploading…' : 'Upload'}</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0])} /></label></div></Field>
           <Field label="Website"><Input value={form.website} onChange={set('website')} /></Field>
           <Field label="Twitter / X"><Input value={form.twitter} onChange={set('twitter')} /></Field>
           <Field label="Telegram"><Input value={form.telegram} onChange={set('telegram')} /></Field>

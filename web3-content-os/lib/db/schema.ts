@@ -267,6 +267,9 @@ export const contentItems = pgTable('content_items', {
   currentVersion: integer('current_version').default(1).notNull(),
   scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
   publishedAt: timestamp('published_at', { withTimezone: true }),
+  publishChannel: text('publish_channel'), // telegram | x | null (manual)
+  autoPublish: boolean('auto_publish').default(false).notNull(),
+  publishedUrl: text('published_url'),
   createdBy: text('created_by'),
   createdAt: createdAt(),
   updatedAt: updatedAt()
@@ -402,6 +405,75 @@ export const generationJobs = pgTable('generation_jobs', {
   updatedAt: updatedAt()
 }, (t) => ({ projIdx: index('jobs_project_idx').on(t.projectId) }))
 
+// ---------------- Phase 2: conflicts, invites, credits, integrations ----------------
+export const projectFactConflicts = pgTable('project_fact_conflicts', {
+  id: id(),
+  projectId: text('project_id').notNull(),
+  factId: text('fact_id').notNull(),
+  key: text('key').notNull(),
+  label: text('label').notNull(),
+  currentValue: text('current_value').notNull(),
+  proposedValue: text('proposed_value').notNull(),
+  source: text('source'),
+  sourceRef: jsonb('source_ref').$type<{ sourceId?: string; sourceName?: string; page?: number; quote?: string }>().default({}).notNull(),
+  status: text('status').default('open').notNull(), // open | kept | accepted
+  resolvedBy: text('resolved_by'),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  createdAt: createdAt()
+}, (t) => ({ projIdx: index('fact_conflicts_project_idx').on(t.projectId) }))
+
+export const organizationInvites = pgTable('organization_invites', {
+  id: id(),
+  orgId: text('org_id').notNull(),
+  email: text('email').notNull(),
+  role: text('role').default('editor').notNull(),
+  token: text('token').notNull().unique(),
+  invitedBy: text('invited_by').notNull(),
+  status: text('status').default('pending').notNull(), // pending | accepted | revoked
+  createdAt: createdAt(),
+  expiresAt: timestamp('expires_at', { withTimezone: true })
+}, (t) => ({ orgIdx: index('invites_org_idx').on(t.orgId) }))
+
+export const creditTransactions = pgTable('credit_transactions', {
+  id: id(),
+  orgId: text('org_id').notNull(),
+  amount: doublePrecision('amount').notNull(), // positive = grant, negative = usage
+  type: text('type').notNull(), // grant | usage | adjustment
+  description: text('description'),
+  ref: text('ref'),
+  balanceAfter: doublePrecision('balance_after').default(0).notNull(),
+  createdAt: createdAt()
+}, (t) => ({ orgIdx: index('credit_tx_org_idx').on(t.orgId) }))
+
+export const integrations = pgTable('integrations', {
+  id: id(),
+  projectId: text('project_id').notNull(),
+  kind: text('kind').notNull(), // telegram | x
+  name: text('name').notNull(),
+  configEnc: text('config_enc').notNull(),
+  meta: jsonb('meta').$type<Record<string, unknown>>().default({}).notNull(),
+  enabled: boolean('enabled').default(true).notNull(),
+  lastTestedAt: timestamp('last_tested_at', { withTimezone: true }),
+  createdAt: createdAt()
+}, (t) => ({ projKind: uniqueIndex('integrations_project_kind').on(t.projectId, t.kind) }))
+
+export const publishLogs = pgTable('publish_logs', {
+  id: id(),
+  projectId: text('project_id').notNull(),
+  contentId: text('content_id').notNull(),
+  channel: text('channel').notNull(),
+  status: text('status').notNull(), // success | failed
+  externalId: text('external_id'),
+  url: text('url'),
+  error: text('error'),
+  createdAt: createdAt()
+}, (t) => ({ projIdx: index('publish_logs_project_idx').on(t.projectId) }))
+
+export type ProjectFactConflict = typeof projectFactConflicts.$inferSelect
+export type OrganizationInvite = typeof organizationInvites.$inferSelect
+export type CreditTransaction = typeof creditTransactions.$inferSelect
+export type Integration = typeof integrations.$inferSelect
+export type PublishLog = typeof publishLogs.$inferSelect
 export type User = typeof users.$inferSelect
 export type Organization = typeof organizations.$inferSelect
 export type Project = typeof projects.$inferSelect

@@ -2,10 +2,11 @@ import { sql } from 'drizzle-orm'
 import { getDb, schema } from '../db'
 import { getAdapter } from './providers'
 import { resolveModel } from './router'
-import { estimateCost } from './pricing'
+import { estimateCost, FALLBACK_PRICING } from './pricing'
 import { localEmbedding, fitDimension } from './local-embedding'
 import { AIError, type ChatMessage, type ChatResult, type StreamEvent, type TaskType } from './types'
 import { todayISO } from '../utils'
+import { chargeUsage, getBalance } from '../services/credits'
 
 export interface RunContext {
   orgId: string
@@ -24,10 +25,14 @@ export interface RunOptions {
   signal?: AbortSignal
 }
 
-async function log(ctx: RunContext, provider: string, model: string, usage: { inputTokens: number; outputTokens: number }, latencyMs: number, status: 'success' | 'error', error?: string) {
+async function log(ctx: RunContext, provider: string, model: string, usage: { inputTokens: number; outputTokens: number }, latencyMs: number, status: 'success' | 'error', error?: string, billToCredits = false) {
   try {
     const db = await getDb()
     const cost = estimateCost(model, usage.inputTokens, usage.outputTokens)
+    if (billToCredits && status === 'success') {
+      const billable = cost > 0 ? cost : estimateCost(model, usage.inputTokens, usage.outputTokens, FALLBACK_PRICING)
+      await chargeUsage(ctx.orgId, billable, `${ctx.taskType}:${model}`, `${ctx.taskType} · ${model}`)
+    }
     await db.insert(schema.aiRequests).values({
       orgId: ctx.orgId, projectId: ctx.projectId ?? null, userId: ctx.userId ?? null, provider, model, taskType: ctx.taskType,
       contentType: ctx.contentType ?? null, inputTokens: Math.round(usage.inputTokens || 0), outputTokens: Math.round(usage.outputTokens || 0), cost, latencyMs, status, error: error?.slice(0, 1000)
@@ -52,8 +57,15 @@ async function log(ctx: RunContext, provider: string, model: string, usage: { in
 }
 
 /** Runs a non-streaming chat completion through the router with usage accounting. */
+async function assertCredits(orgId: string, isSystemKey: boolean) {
+  if (!isSystemKey) return
+  const balance = await getBalance(orgId)
+  if (balance <= 0) throw new AIError('Your workspace has no platform credits left. Add your own API key in Settings → AI Providers, or top up credits in Settings → Billing.', 402)
+}
+
 export async function runChat(ctx: RunContext, opts: RunOptions): Promise<ChatResult & { provider: string }> {
   const resolved = await resolveModel(ctx.orgId, ctx.taskType)
+  await assertCredits(ctx.orgId, resolved.isSystemKey)
   const model = opts.model || resolved.model
   const adapter = getAdapter(resolved.creds.kind)
   const started = Date.now()
@@ -64,7 +76,7 @@ export async function runChat(ctx: RunContext, opts: RunOptions): Promise<ChatRe
       maxTokens: opts.maxTokens ?? resolved.maxTokens,
       signal: opts.signal
     })
-    await log(ctx, resolved.creds.kind, model, result.usage, Date.now() - started, 'success')
+    await log(ctx, resolved.creds.kind, model, result.usage, Date.now() - started, 'success', undefined, resolved.isSystemKey)
     return { ...result, provider: resolved.creds.kind }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -83,6 +95,7 @@ export async function runJson<T>(ctx: RunContext, opts: RunOptions, fallback: T)
 /** Streams a chat completion. Usage is logged when the stream finishes. */
 export async function* streamChat(ctx: RunContext, opts: RunOptions): AsyncGenerator<StreamEvent & { model?: string }> {
   const resolved = await resolveModel(ctx.orgId, ctx.taskType)
+  await assertCredits(ctx.orgId, resolved.isSystemKey)
   const model = opts.model || resolved.model
   const adapter = getAdapter(resolved.creds.kind)
   const started = Date.now()
@@ -91,7 +104,7 @@ export async function* streamChat(ctx: RunContext, opts: RunOptions): AsyncGener
       model, messages: opts.messages, temperature: opts.temperature ?? resolved.temperature, maxTokens: opts.maxTokens ?? resolved.maxTokens, signal: opts.signal
     })) {
       if (ev.type === 'done') {
-        await log(ctx, resolved.creds.kind, model, ev.usage, Date.now() - started, 'success')
+        await log(ctx, resolved.creds.kind, model, ev.usage, Date.now() - started, 'success', undefined, resolved.isSystemKey)
         yield { ...ev, model }
       } else yield ev
     }
@@ -126,7 +139,7 @@ export async function embedTexts(ctx: Omit<RunContext, 'taskType'>, texts: strin
       totalTokens += res.usage.inputTokens || slice.reduce((a, t) => a + Math.ceil(t.length / 4), 0)
       out.push(...res.vectors.map((v) => fitDimension(v)))
     }
-    await log({ ...ctx, taskType: 'embedding' }, resolved.creds.kind, resolved.model, { inputTokens: totalTokens, outputTokens: 0 }, Date.now() - started, 'success')
+    await log({ ...ctx, taskType: 'embedding' }, resolved.creds.kind, resolved.model, { inputTokens: totalTokens, outputTokens: 0 }, Date.now() - started, 'success', undefined, resolved.isSystemKey)
     return { vectors: out, model: resolved.model, provider: resolved.creds.kind, local: false }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

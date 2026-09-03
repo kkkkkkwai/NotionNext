@@ -58,6 +58,24 @@ function reply(messages) {
 http.createServer(async (req, res) => {
   let body = ''
   for await (const c of req) body += c
+  // ---- Telegram Bot API mock: /bot<token>/getMe | sendMessage ----
+  if (/^\/bot/.test(req.url)) {
+    const ok = /^\/botmock-tg/.test(req.url)
+    res.writeHead(ok ? 200 : 401, { 'Content-Type': 'application/json' })
+    if (!ok) return res.end(JSON.stringify({ ok: false, description: 'Unauthorized' }))
+    if (req.url.endsWith('/getMe')) return res.end(JSON.stringify({ ok: true, result: { username: 'mock_bot' } }))
+    const j = body ? JSON.parse(body) : {}
+    return res.end(JSON.stringify({ ok: true, result: { message_id: 42, chat: { username: String(j.chat_id || '').replace('@', '') }, text: j.text } }))
+  }
+  // ---- X API v2 mock: /2/users/me | /2/tweets (OAuth1 header required) ----
+  if (req.url.startsWith('/2/')) {
+    const a = req.headers.authorization ?? ''
+    const ok = a.startsWith('OAuth ') && /oauth_signature="/.test(a) && /oauth_consumer_key="mockx"/.test(a)
+    res.writeHead(ok ? (req.url === '/2/tweets' ? 201 : 200) : 401, { 'Content-Type': 'application/json' })
+    if (!ok) return res.end(JSON.stringify({ title: 'Unauthorized', detail: 'bad oauth' }))
+    if (req.url === '/2/users/me') return res.end(JSON.stringify({ data: { id: '1', username: 'mock_x' } }))
+    return res.end(JSON.stringify({ data: { id: String(Date.now()), text: JSON.parse(body).text } }))
+  }
   const auth = req.headers.authorization ?? ''
   if (!auth.startsWith('Bearer mock')) { res.writeHead(401, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: { message: 'bad key' } })) }
   if (req.url.endsWith('/models')) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ data: [{ id: 'mock-fast' }, { id: 'mock-strong' }, { id: 'mock-embed' }] })) }

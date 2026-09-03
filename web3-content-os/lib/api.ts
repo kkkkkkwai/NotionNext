@@ -18,7 +18,7 @@ export function errorResponse(err: unknown) {
   if (err instanceof AIError) return json({ error: err.message, provider: err.provider, code: err.status === 424 ? 'NO_PROVIDER' : 'AI_ERROR' }, { status: err.status >= 400 && err.status < 600 ? err.status : 500 })
   const message = describeError(err)
   console.error('[api]', err)
-  const status = /not found/i.test(message) ? 404 : /unauthori/i.test(message) ? 401 : 400
+  const status = /not found/i.test(message) ? 404 : /unauthori/i.test(message) ? 401 : /permission|not allowed|cannot be/i.test(message) ? 403 : 400
   return json({ error: message }, { status })
 }
 

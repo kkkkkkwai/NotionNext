@@ -23,12 +23,12 @@ function envKeyFor(kind: ProviderKind) {
   return env ? process.env[env]?.trim() : undefined
 }
 
-function systemProvider(): { kind: ProviderKind; apiKey: string } | null {
+function systemProvider(): { kind: ProviderKind; apiKey: string; baseUrl?: string } | null {
   const preferred = (process.env.SYSTEM_DEFAULT_PROVIDER as ProviderKind) || 'openai'
-  const order: ProviderKind[] = [preferred, 'openai', 'anthropic', 'gemini', 'openrouter']
+  const order: ProviderKind[] = [preferred, 'openai', 'anthropic', 'gemini', 'openrouter', 'openai_compatible']
   for (const kind of order) {
-    const key = envKeyFor(kind)
-    if (key) return { kind, apiKey: key }
+    const key = envKeyFor(kind) || (kind === 'openai_compatible' ? process.env.OPENAI_COMPATIBLE_API_KEY?.trim() : undefined)
+    if (key) return { kind, apiKey: key, baseUrl: process.env[`${kind.toUpperCase()}_BASE_URL`]?.trim() || undefined }
   }
   return null
 }
@@ -91,7 +91,7 @@ export async function resolveModel(orgId: string, task: TaskType): Promise<Resol
 
   const sys = systemProvider()
   if (sys) {
-    const creds: ProviderCredentials = { kind: sys.kind, apiKey: sys.apiKey }
+    const creds: ProviderCredentials = { kind: sys.kind, apiKey: sys.apiKey, baseUrl: sys.baseUrl }
     const model = task === 'embedding'
       ? process.env.SYSTEM_EMBEDDING_MODEL || DEFAULT_MODELS[sys.kind]?.embedding || ''
       : settings?.model || (tierOf(task) === 'fast' && process.env.SYSTEM_DEFAULT_MODEL ? process.env.SYSTEM_DEFAULT_MODEL : pickModel(sys.kind, task))

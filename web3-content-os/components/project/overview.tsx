@@ -12,6 +12,7 @@ import { api, errorMessage } from '@/lib/client'
 import { relativeTime, truncate } from '@/lib/utils'
 import type { Project, ProjectFact } from '@/lib/db/schema'
 import { ProjectSettingsDialog } from './project-settings-dialog'
+import { ConflictsPanel, type ConflictView } from './conflicts-panel'
 
 type Props = {
   project: Project
@@ -23,9 +24,10 @@ type Props = {
   recentContent: { id: string; title: string; contentType: string; createdAt: string; status: string }[]
   memoryCount: number
   initialJobId: string | null
+  conflicts: ConflictView[]
 }
 
-export function ProjectOverview({ project, readiness, facts, dna, kstats, sources, recentContent, memoryCount, initialJobId }: Props) {
+export function ProjectOverview({ project, readiness, facts, dna, kstats, sources, recentContent, memoryCount, initialJobId, conflicts }: Props) {
   const router = useRouter()
   const toast = useToast()
   const [jobId, setJobId] = useState<string | null>(initialJobId)
@@ -70,6 +72,7 @@ export function ProjectOverview({ project, readiness, facts, dna, kstats, source
           <Link href={`${base}/generate`}><Button size="sm"><Wand2 className="h-3.5 w-3.5" /> Generate Content</Button></Link>
         </div>
       </div>
+      {conflicts.length ? <div className="mb-6"><ConflictsPanel projectId={project.id} conflicts={conflicts} /></div> : null}
       {jobId ? <div className="mb-6"><JobProgress projectId={project.id} jobId={jobId} title="AI is reading your project" onDone={(j) => { if (j.status === 'completed') { toast.success('Project brain updated', `Readiness ${j.result?.readiness ?? ''}%`); router.refresh() } }} /></div> : null}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">

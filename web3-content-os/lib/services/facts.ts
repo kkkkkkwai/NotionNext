@@ -157,7 +157,11 @@ export async function extractAndMergeFacts(ctx: { orgId: string; projectId: stri
       key: f.key, label: f.label, value: f.value, category: f.category, source: sourceName, confidence: f.confidence,
       sourceRef: { sourceId, sourceName, page: f.page, quote: f.quote }
     }, { by: 'ai' })
-    if (r.conflict) results.push({ key: f.key, status: 'conflict', current: r.conflict.current, proposed: r.conflict.proposed })
+    if (r.conflict) {
+      const { recordConflict } = await import('./conflicts')
+      await recordConflict(ctx.projectId, { factId: r.fact.id, key: r.fact.key, label: r.fact.label, currentValue: r.conflict.current, proposedValue: r.conflict.proposed, source: sourceName, sourceRef: { sourceId, sourceName, page: f.page, quote: f.quote } })
+      results.push({ key: f.key, status: 'conflict', current: r.conflict.current, proposed: r.conflict.proposed })
+    }
     else results.push({ key: f.key, status: r.changed ? (r.fact.version === 1 ? 'added' : 'updated') : 'unchanged' })
   }
   return results

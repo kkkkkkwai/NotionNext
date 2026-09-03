@@ -7,17 +7,18 @@ import { Dialog, ConfirmDialog } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { api, errorMessage } from '@/lib/client'
 import { relativeTime } from '@/lib/utils'
+import { ConflictsPanel, type ConflictView } from './conflicts-panel'
 
 type Fact = { id: string; key: string; label: string; value: string; category: string; source: string; sourceRef: { sourceName?: string; page?: number; quote?: string }; confidence: number; version: number; status: string; pinned: boolean; updatedAt: string }
 type Memory = { id: string; type: string; title: string; content: string; oldValue: string | null; newValue: string | null; pinned: boolean; locked: boolean; status: string; source: string; updatedAt: string }
 type Term = { id: string; oldTerm: string; newTerm: string; note: string | null }
 type Rule = { id: string; ruleType: string; content: string }
 type Event = { id: string; event: string; payload: Record<string, unknown>; actor: string | null; createdAt: string }
-type Tab = 'facts' | 'brand' | 'terminology' | 'narrative' | 'tokenomics' | 'decisions' | 'ai' | 'history'
+type Tab = 'facts' | 'conflicts' | 'brand' | 'terminology' | 'narrative' | 'tokenomics' | 'decisions' | 'ai' | 'archived' | 'history'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'facts', label: 'Key Facts' }, { id: 'brand', label: 'Brand Rules' }, { id: 'terminology', label: 'Terminology' }, { id: 'narrative', label: 'Narrative' },
-  { id: 'tokenomics', label: 'Tokenomics' }, { id: 'decisions', label: 'Important Decisions' }, { id: 'ai', label: 'AI Memories' }, { id: 'history', label: 'History' }
+  { id: 'facts', label: 'Key Facts' }, { id: 'conflicts', label: 'Conflicts' }, { id: 'brand', label: 'Brand Rules' }, { id: 'terminology', label: 'Terminology' }, { id: 'narrative', label: 'Narrative' },
+  { id: 'tokenomics', label: 'Tokenomics' }, { id: 'decisions', label: 'Important Decisions' }, { id: 'ai', label: 'AI Memories' }, { id: 'archived', label: 'Archived' }, { id: 'history', label: 'History' }
 ]
 
 export function MemoryManager({ projectId }: { projectId: string }) {
@@ -29,6 +30,7 @@ export function MemoryManager({ projectId }: { projectId: string }) {
   const [terms, setTerms] = useState<Term[]>([])
   const [rules, setRules] = useState<Rule[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [conflicts, setConflicts] = useState<ConflictView[]>([])
   const [error, setError] = useState<string | null>(null)
   const [factDialog, setFactDialog] = useState<Partial<Fact> | null>(null)
   const [memDialog, setMemDialog] = useState<Partial<Memory> | null>(null)
@@ -39,7 +41,8 @@ export function MemoryManager({ projectId }: { projectId: string }) {
 
   const load = useCallback(async () => {
     try {
-      const [f, m] = await Promise.all([api<{ facts: Fact[]; categories: string[] }>(`/api/projects/${projectId}/facts`), api<{ memories: Memory[]; events: Event[]; terminology: Term[]; brandRules: Rule[] }>(`/api/projects/${projectId}/memory?archived=1`)])
+      const [f, m, c] = await Promise.all([api<{ facts: Fact[]; categories: string[] }>(`/api/projects/${projectId}/facts`), api<{ memories: Memory[]; events: Event[]; terminology: Term[]; brandRules: Rule[] }>(`/api/projects/${projectId}/memory?archived=1`), api<{ conflicts: ConflictView[] }>(`/api/projects/${projectId}/conflicts`)])
+      setConflicts(c.conflicts)
       setFacts(f.facts)
       setCategories(f.categories)
       setMemories(m.memories)
@@ -149,7 +152,7 @@ export function MemoryManager({ projectId }: { projectId: string }) {
   return (
     <div>
       <PageHeader eyebrow="Project Memory" title="Memory" description="Structured facts, brand rules, terminology and team decisions. Locked items are never changed by AI. Every fact is versioned and traceable to its source." actions={<><Button variant="secondary" size="sm" onClick={() => setMemDialog({ type: 'decision' })}><Plus className="h-3.5 w-3.5" /> Add Memory</Button><Button size="sm" onClick={() => setFactDialog({ category: 'general', status: 'confirmed' })}><Plus className="h-3.5 w-3.5" /> Add Fact</Button></>} />
-      <Tabs tabs={TABS.map((t) => ({ ...t, count: t.id === 'facts' ? facts?.length : t.id === 'terminology' ? terms.length : t.id === 'brand' ? rules.length + memByType(['brand_rule', 'preference']).length : t.id === 'ai' ? memories.filter((m) => m.source === 'ai' && m.status === 'active').length : t.id === 'tokenomics' ? tokenFacts.length + memByType(['tokenomics']).length : tabMemTypes[t.id] ? memByType(tabMemTypes[t.id]).length : undefined }))} value={tab} onChange={setTab} className="mb-4" />
+      <Tabs tabs={TABS.map((t) => ({ ...t, count: t.id === 'facts' ? facts?.length : t.id === 'conflicts' ? conflicts.length : t.id === 'archived' ? memories.filter((m) => m.status === 'archived').length : t.id === 'terminology' ? terms.length : t.id === 'brand' ? rules.length + memByType(['brand_rule', 'preference']).length : t.id === 'ai' ? memories.filter((m) => m.source === 'ai' && m.status === 'active').length : t.id === 'tokenomics' ? tokenFacts.length + memByType(['tokenomics']).length : tabMemTypes[t.id] ? memByType(tabMemTypes[t.id]).length : undefined }))} value={tab} onChange={setTab} className="mb-4" />
       {error ? <ErrorState message={error} retry={load} /> : facts === null ? <div className="space-y-2"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : null}
       {facts && tab === 'facts' ? (
         <Card>
@@ -183,6 +186,8 @@ export function MemoryManager({ projectId }: { projectId: string }) {
           )}
         </Card>
       ) : null}
+      {facts && tab === 'conflicts' ? (conflicts.length ? <ConflictsPanel projectId={projectId} conflicts={conflicts} onChange={load} /> : <EmptyState title="No open conflicts" description="When a document proposes a value that differs from a confirmed or locked fact, it shows up here instead of silently overwriting it." />) : null}
+      {facts && tab === 'archived' ? (memories.filter((m) => m.status === 'archived').length === 0 ? <EmptyState title="Nothing archived" description="Deleted memories are kept here and can be restored." /> : <ul className="space-y-2">{memories.filter((m) => m.status === 'archived').map((m) => <li key={m.id} className="card flex items-center gap-3 p-4"><div className="min-w-0 flex-1"><div className="text-[13.5px] text-fg">{m.title} <Badge>{m.type.replace('_', ' ')}</Badge></div><p className="text-[12.5px] text-fg-muted">{m.content}</p></div><Button size="xs" variant="secondary" onClick={() => patchMemory(m.id, { status: 'active' })}><RotateCcw className="h-3 w-3" /> Restore</Button></li>)}</ul>) : null}
       {facts && tab === 'brand' ? (
         <div className="space-y-4">
           {rules.length ? <Card><CardHeader title="Brand Rules" description="Applied to every generation" /><ul className="divide-y divide-line">{rules.map((r) => <li key={r.id} className="flex items-center gap-3 px-5 py-2.5 text-[13px]"><Badge tone={r.ruleType === 'dont' || r.ruleType === 'restricted_claim' ? 'danger' : 'primary'}>{r.ruleType}</Badge><span className="flex-1 text-fg/90">{r.content}</span><button onClick={() => setDel({ kind: 'rule', id: r.id, label: r.content })} className="text-fg-dim hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button></li>)}</ul></Card> : null}

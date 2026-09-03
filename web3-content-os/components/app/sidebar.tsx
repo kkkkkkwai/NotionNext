@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { LayoutDashboard, FolderKanban, Dna, BookOpen, Brain, Sparkles, Coins, Map, MessageSquare, Wand2, Rocket, Library, Megaphone, CalendarDays, ShieldCheck, ScanSearch, Palette, Languages, Cpu, Users, LogOut, ChevronDown, Plus, Menu, X, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Dna, BookOpen, Brain, Sparkles, Coins, Map, MessageSquare, Wand2, Rocket, Library, Megaphone, CalendarDays, ShieldCheck, ScanSearch, Palette, Languages, Cpu, Users, LogOut, ChevronDown, Plus, Menu, X, BarChart3, Send, CreditCard, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/client'
 
@@ -26,7 +26,8 @@ const projectNav = (id: string) => [
   ] },
   { section: 'Campaign', items: [
     { href: `/projects/${id}/campaigns`, label: 'Campaigns', icon: Megaphone },
-    { href: `/projects/${id}/calendar`, label: 'Content Calendar', icon: CalendarDays }
+    { href: `/projects/${id}/calendar`, label: 'Content Calendar', icon: CalendarDays },
+    { href: `/projects/${id}/publish`, label: 'Publishing', icon: Send }
   ] },
   { section: 'Tools', items: [
     { href: `/projects/${id}/consistency`, label: 'Consistency Check', icon: ScanSearch },
@@ -39,14 +40,25 @@ const settingsNav = [
   { href: '/settings/languages', label: 'Languages', icon: Languages },
   { href: '/settings/ai-providers', label: 'AI Providers', icon: Cpu },
   { href: '/settings/usage', label: 'AI Usage', icon: BarChart3 },
+  { href: '/settings/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings/team', label: 'Team', icon: Users }
 ]
 
-export function Sidebar({ projects, currentProjectId, user }: { projects: NavProject[]; currentProjectId?: string; user: { name: string; email: string } }) {
+export type NavOrg = { id: string; name: string; role: string }
+
+export function Sidebar({ projects, currentProjectId, user, organizations = [], currentOrgId }: { projects: NavProject[]; currentProjectId?: string; user: { name: string; email: string }; organizations?: NavOrg[]; currentOrgId?: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [switcher, setSwitcher] = useState(false)
+  const [orgMenu, setOrgMenu] = useState(false)
+  const currentOrg = organizations.find((o) => o.id === currentOrgId)
+  const switchOrg = async (orgId: string) => {
+    await api('/api/settings/team/switch', { method: 'POST', json: { orgId } })
+    setOrgMenu(false)
+    router.push('/dashboard')
+    router.refresh()
+  }
   const current = projects.find((p) => p.id === currentProjectId)
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname.startsWith(href))
   const logout = async () => {
@@ -104,6 +116,16 @@ export function Sidebar({ projects, currentProjectId, user }: { projects: NavPro
         ))}
       </nav>
       <div className="border-t border-line px-3 py-3">
+        {organizations.length > 0 ? (
+          <div className="relative mb-2">
+            <button onClick={() => setOrgMenu((s) => !s)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-fg-muted hover:bg-white/[0.04]"><Building2 className="h-3.5 w-3.5" /><span className="flex-1 truncate">{currentOrg?.name ?? 'Workspace'}</span>{organizations.length > 1 ? <ChevronDown className="h-3 w-3" /> : null}</button>
+            {orgMenu && organizations.length > 1 ? (
+              <div className="absolute bottom-full left-0 right-0 z-20 mb-1 rounded-xl border border-line bg-bg-soft p-1 shadow-soft">
+                {organizations.map((o) => <button key={o.id} onClick={() => switchOrg(o.id)} className={cn('flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[12.5px] hover:bg-white/[0.05]', o.id === currentOrgId ? 'text-fg' : 'text-fg-muted')}><span className="truncate">{o.name}</span><span className="text-[10px] uppercase text-fg-dim">{o.role}</span></button>)}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-semibold uppercase text-fg-muted">{(user.name || user.email).slice(0, 1)}</div>
           <div className="min-w-0 flex-1">

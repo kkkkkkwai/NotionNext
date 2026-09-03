@@ -33,6 +33,9 @@ export const MODEL_PRICING: Record<string, { input: number; output: number }> = 
   'deepseek-reasoner': { input: 0.55, output: 2.19 }
 }
 
+/** Used when billing platform credits for a model without a known price list. */
+export const FALLBACK_PRICING = { input: 1, output: 4 }
+
 export function estimateCost(model: string, inputTokens: number, outputTokens: number, override?: { input: number; output: number }) {
   const key = Object.keys(MODEL_PRICING).find((k) => model === k || model.endsWith('/' + k) || model.startsWith(k))
   const p = override ?? (key ? MODEL_PRICING[key] : undefined)

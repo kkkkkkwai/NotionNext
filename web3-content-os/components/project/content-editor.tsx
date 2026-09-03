@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Copy, Check, Save, History, RotateCcw, ShieldCheck, Languages, Eye, Pencil, Sparkles } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Save, History, RotateCcw, ShieldCheck, Languages, Eye, Pencil, Sparkles, Send, Image as ImageIcon, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge, Card, ErrorState, Field, Input, Select, Skeleton, Switch, Textarea } from '@/components/ui/primitives'
 import { Markdown } from '@/components/ui/markdown'
@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast'
 import { api, errorMessage } from '@/lib/client'
 import { cn, relativeTime } from '@/lib/utils'
 
-type Item = { id: string; title: string; body: string; contentType: string; category: string; platform: string | null; language: string; status: string; tags: string[]; folder: string | null; currentVersion: number; scheduledAt: string | null; createdAt: string; updatedAt: string }
+type Item = { id: string; title: string; body: string; contentType: string; category: string; platform: string | null; language: string; status: string; tags: string[]; folder: string | null; currentVersion: number; scheduledAt: string | null; createdAt: string; updatedAt: string; publishChannel: string | null; autoPublish: boolean; publishedUrl: string | null }
 type Version = { id: string; version: number; body: string; note: string | null; model: string | null; createdAt: string }
 type Action = { id: string; label: string; zh: string }
 type Finding = { level: 'high' | 'medium' | 'low'; phrase: string; reason: string; suggestion?: string }
@@ -35,6 +35,8 @@ export function ContentEditor({ projectId, contentId }: { projectId: string; con
   const [risk, setRisk] = useState<{ findings: Finding[]; score: string } | null>(null)
   const [showVersions, setShowVersions] = useState(false)
   const [meta, setMeta] = useState({ status: 'draft', folder: '', tags: '', scheduledAt: '' })
+  const [channels, setChannels] = useState<{ kind: string; account?: string }[]>([])
+  const [pub, setPub] = useState<{ channel: string; auto: boolean }>({ channel: '', auto: false })
   const load = useCallback(async () => {
     try {
       const [r, a] = await Promise.all([api<{ item: Item; versions: Version[] }>(`/api/projects/${projectId}/content/${contentId}`), api<{ actions: Action[] }>(`/api/projects/${projectId}/content/${contentId}/edit`)])
@@ -44,6 +46,8 @@ export function ContentEditor({ projectId, contentId }: { projectId: string; con
       setBody(r.item.body)
       setTitle(r.item.title)
       setMeta({ status: r.item.status, folder: r.item.folder ?? '', tags: r.item.tags.join(', '), scheduledAt: r.item.scheduledAt ? r.item.scheduledAt.slice(0, 10) : '' })
+      setPub({ channel: r.item.publishChannel ?? '', auto: r.item.autoPublish })
+      api<{ integrations: { kind: string; meta: { account?: string } }[] }>(`/api/projects/${projectId}/integrations`).then((x) => setChannels(x.integrations.map((i) => ({ kind: i.kind, account: i.meta?.account })))).catch(() => {})
       setError(null)
     } catch (e) {
       setError(errorMessage(e))
@@ -114,6 +118,29 @@ export function ContentEditor({ projectId, contentId }: { projectId: string; con
     setShowVersions(false)
     load()
   }
+  const publishNow = async () => {
+    if (!pub.channel) return
+    if (dirty) await save()
+    setBusy('publish')
+    try {
+      const r = await api<{ url?: string }>(`/api/projects/${projectId}/content/${contentId}/publish`, { method: 'POST', json: { channel: pub.channel } })
+      toast.success('Published', r.url ?? 'Posted successfully')
+      await load()
+    } catch (e) {
+      toast.error('Publish failed', errorMessage(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+  const savePublishPlan = async (next: { channel: string; auto: boolean }) => {
+    setPub(next)
+    try {
+      await api(`/api/projects/${projectId}/content/${contentId}/publish`, { method: 'PATCH', json: { publishChannel: next.channel || null, autoPublish: next.auto, scheduledAt: meta.scheduledAt ? new Date(meta.scheduledAt + 'T12:00:00Z').toISOString() : null } })
+      if (next.auto) toast.info('Auto-publish armed', `Will post to ${next.channel} at the scheduled time.`)
+    } catch (e) {
+      toast.error('Could not save', errorMessage(e))
+    }
+  }
   const copy = async () => {
     await navigator.clipboard.writeText(body)
     setCopied(true)
@@ -160,6 +187,18 @@ export function ContentEditor({ projectId, contentId }: { projectId: string; con
             <div className="mt-3 flex gap-2"><Select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} className="h-8 py-1 text-[12.5px]">{LANGS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}</Select><Button size="sm" variant="secondary" onClick={() => run('translate', { targetLanguage: targetLang })} loading={busy === 'translate'}><Languages className="h-3.5 w-3.5" /> Translate</Button></div>
             <div className="mt-3 flex gap-2"><Input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Custom instruction…" className="h-8 py-1 text-[12.5px]" /><Button size="sm" variant="secondary" disabled={!custom.trim()} loading={busy === 'custom'} onClick={() => run('custom', { instruction: custom })}>Go</Button></div>
             <Button size="sm" variant="outline" className="mt-3 w-full" onClick={checkRisk} loading={busy === 'risk'}><ShieldCheck className="h-3.5 w-3.5" /> Risk Check</Button>
+          </Card>
+          <Card className="p-4">
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-medium text-fg"><Send className="h-4 w-4 text-primary" /> Publish</div>
+            {channels.length === 0 ? <p className="text-[12.5px] text-fg-muted">No channels connected. <Link href={`/projects/${projectId}/publish`} className="text-primary hover:underline">Connect Telegram or X →</Link></p> : (
+              <div className="space-y-2">
+                <Select value={pub.channel} onChange={(e) => savePublishPlan({ ...pub, channel: e.target.value })} className="h-8 py-1 text-[12.5px]"><option value="">Choose channel…</option>{channels.map((c) => <option key={c.kind} value={c.kind}>{c.kind === 'x' ? 'X (Twitter)' : 'Telegram'}{c.account ? ` · ${c.account}` : ''}</option>)}</Select>
+                <Button size="sm" className="w-full" disabled={!pub.channel} loading={busy === 'publish'} onClick={publishNow}><Send className="h-3.5 w-3.5" /> Publish now</Button>
+                <Switch checked={pub.auto} onChange={(v) => savePublishPlan({ ...pub, auto: v })} label={meta.scheduledAt ? `Auto-publish on ${meta.scheduledAt}` : 'Auto-publish at schedule date'} />
+                {item.publishedUrl ? <a href={item.publishedUrl} target="_blank" className="flex items-center gap-1 text-[12.5px] text-primary hover:underline"><ExternalLink className="h-3 w-3" /> View published post</a> : null}
+              </div>
+            )}
+            {item.contentType === 'poster_copy' ? <div className="mt-3 border-t border-line pt-3"><div className="mb-1.5 flex items-center gap-2 text-[13px] font-medium text-fg"><ImageIcon className="h-4 w-4 text-primary" /> Poster export</div><div className="flex flex-wrap gap-1.5">{[['portrait', '1080×1350'], ['square', '1080×1080'], ['wide', '1600×900']].map(([s, l]) => <a key={s} href={`/api/projects/${projectId}/content/${contentId}/poster?size=${s}`} target="_blank" className="rounded-lg border border-line px-2 py-1 text-[12px] text-fg-muted hover:border-primary/40 hover:text-fg">{l}</a>)}</div><p className="mt-1 text-[11px] text-fg-dim">Branded SVG rendered from the copy — open and save, or import into Figma/Canva.</p></div> : null}
           </Card>
           <Card className="space-y-3 p-4">
             <Field label="Status"><Select value={meta.status} onChange={(e) => setMeta({ ...meta, status: e.target.value })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</Select></Field>

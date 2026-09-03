@@ -15,7 +15,7 @@ async function run(viewport, tag) {
   await page.fill('input[type=password]', 'password123')
   await page.click('button[type=submit]')
   await page.waitForURL('**/dashboard', { timeout: 15000 })
-  const pages = ['/dashboard', '/projects/new', `/projects/${pid}`, `/projects/${pid}/dna`, `/projects/${pid}/knowledge`, `/projects/${pid}/memory`, `/projects/${pid}/narrative`, `/projects/${pid}/tokenomics`, `/projects/${pid}/roadmap`, `/projects/${pid}/ask`, `/projects/${pid}/generate`, `/projects/${pid}/launch-kit`, `/projects/${pid}/library`, `/projects/${pid}/campaigns`, `/projects/${pid}/calendar`, `/projects/${pid}/consistency`, `/projects/${pid}/risk`, '/settings/ai-providers', '/settings/usage', '/settings/brand', '/settings/languages', '/settings/team', '/nonexistent-page']
+  const pages = ['/dashboard', '/projects/new', `/projects/${pid}`, `/projects/${pid}/dna`, `/projects/${pid}/knowledge`, `/projects/${pid}/memory`, `/projects/${pid}/narrative`, `/projects/${pid}/tokenomics`, `/projects/${pid}/roadmap`, `/projects/${pid}/ask`, `/projects/${pid}/generate`, `/projects/${pid}/launch-kit`, `/projects/${pid}/library`, `/projects/${pid}/campaigns`, `/projects/${pid}/calendar`, `/projects/${pid}/consistency`, `/projects/${pid}/risk`, `/projects/${pid}/publish`, '/settings/billing', '/settings/ai-providers', '/settings/usage', '/settings/brand', '/settings/languages', '/settings/team', '/nonexistent-page']
   for (const p of pages) {
     const res = await page.goto(BASE + p, { waitUntil: 'networkidle', timeout: 30000 })
     const status = res?.status()

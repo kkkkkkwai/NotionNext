@@ -89,9 +89,27 @@ node scripts/dev/e2e-ui.mjs <email> <projectId> # Playwright pass over every rou
 2. Set `DATABASE_URL` to the Postgres connection string and `AUTH_SECRET` to a long random value.
 3. `npm run build && npm run start` (or deploy to any Node host). Background jobs (ingest, launch kit, campaigns) run inside the Node process — use a long-running server rather than short-lived serverless functions.
 
+## Phase 2 features
+
+- **Conflict detection** — when a document proposes a value that differs from a confirmed/locked fact, it is recorded in `project_fact_conflicts` and shown on the Overview and Memory → Conflicts. The user chooses *Keep current* or *Use document value*; the AI never overwrites confirmed facts.
+- **Platform credits** — workspaces using the server's system keys are billed estimated model cost × `SYSTEM_CREDITS_MARKUP`; BYOK usage is never charged. New workspaces receive `SIGNUP_FREE_CREDITS`. Settings → Billing shows balance and transactions; emails in `BILLING_ADMIN_EMAILS` can grant credits. Generation returns HTTP 402 when the balance is exhausted.
+- **Team** — invite by email (existing accounts are added instantly, otherwise a 14-day signup link), roles `owner / admin / editor / viewer`, role changes, removal, workspace rename and switching between workspaces (sidebar footer or Settings → Team).
+- **Publishing** — connect Telegram (bot token + channel) and X (OAuth 1.0a user keys) per project, test the connection, publish any content item from the editor (long X posts become threads), and an in-process scheduler (`SCHEDULER_INTERVAL_MS`) auto-publishes scheduled items that have a channel and *Auto-publish* enabled. Every attempt is logged.
+- **Poster export** — poster copy renders to a branded SVG (portrait / square / wide) from the content editor.
+- **Logo upload** — PNG/JPG/WEBP/SVG/GIF stored under `UPLOAD_DIR` and served from `/api/projects/:id/logo`.
+
+Test all of it without real credentials:
+
+```bash
+node scripts/dev/mock-llm.mjs &     # also mocks Telegram Bot API and X API v2
+TELEGRAM_API_BASE=http://localhost:3199 X_API_BASE=http://localhost:3199 SCHEDULER_INTERVAL_MS=2000 \
+OPENAI_API_KEY=mock-key OPENAI_BASE_URL=http://localhost:3199/v1 BILLING_ADMIN_EMAILS=admin@test.local npm run start &
+node scripts/dev/e2e-phase2.mjs
+```
+
 ## Roadmap (next phases)
 
-- Supabase Auth / OAuth, team invitations and roles
-- Billing & platform credits for system keys
-- Social publishing (X / Telegram) and analytics
-- Image poster rendering from poster copy
+- Supabase Auth / OAuth sign-in
+- Payment checkout for credits (Stripe)
+- Discord publishing, engagement analytics
+- PNG/JPG poster rasterisation and image generation
