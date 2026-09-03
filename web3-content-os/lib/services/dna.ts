@@ -92,27 +92,32 @@ ${renderMemories(memories, terms, rules) || ''}
 KNOWLEDGE BASE EXCERPTS:
 ${knowledge.join('\n\n') || '(no documents uploaded yet)'}
 
+Think like a senior Web3 strategist. First decide silently: what category the project actually competes in, what its one unique mechanism is, who feels the problem most, and how the token captures value. Then fill the DNA so that every field is specific to THIS project — if a sentence could describe any other project, replace it with a mechanism, a number, or a concrete user situation.
+
 Return JSON with exactly these keys:
 {
- "project_overview": "2-3 paragraphs",
- "one_sentence_positioning": "one sentence",
- "mission": "...", "vision": "...",
- "market_problem": "...", "solution": "...", "product": "...",
- "target_audience": ["segment — why"],
- "business_model": "...",
- "token_model": "supply, allocation, vesting, value capture (only what is known)",
- "token_utility": ["utility"],
- "competitive_advantage": ["advantage"],
- "narrative": "the core story: trend → problem → why now → solution → growth → token value → vision",
- "brand_keywords": ["keyword"],
- "brand_tone": "how the brand sounds, with 3 do / 3 don't examples",
- "key_selling_points": ["point"],
- "communication_rules": ["rule"],
- "restricted_claims": ["claim we must never make"],
- "key_facts": ["fact with source name when known"],
- "missing_information": ["what is missing and why it matters"]
+ "project_overview": "2-3 paragraphs: what it is (category + mechanism), who it serves, why now, where it stands today. Plain, precise, no adjectives.",
+ "one_sentence_positioning": "Use the formula: [Project] is the [category] that lets [audience] [outcome] because [unique mechanism].",
+ "mission": "one sentence, what changes for users if the project succeeds",
+ "vision": "one sentence, the end state of the market the project is building toward",
+ "market_problem": "the concrete pain (who, when, how much it costs them) and why existing solutions fail — cite the sector trend that makes it urgent",
+ "solution": "the mechanism, step by step, in cause → effect language; explain what is technically or economically new",
+ "product": "what a user actually opens/uses today: surfaces, flows, integrations; status (live / testnet / planned)",
+ "target_audience": ["segment — the job they hire the product for — why they switch"],
+ "business_model": "who pays, for what, how revenue/fees flow, what the flywheel is",
+ "token_model": "supply, allocation, vesting/unlocks, sinks & sources, and the value-capture logic (fees / burn / staking / access / governance). Only what is known; mark unknowns.",
+ "token_utility": ["utility — the demand it creates"],
+ "competitive_advantage": ["advantage — why it is hard to copy (tech, distribution, data, liquidity, community, timing)"],
+ "narrative": "the core story in 6-8 sentences following Trend → Problem → Insight → Mechanism → Proof → Why now → Token value → Vision. Each sentence must add a new causal link.",
+ "brand_keywords": ["6-10 words the brand owns"],
+ "brand_tone": "how the brand sounds (3 adjectives + who it sounds like on CT), then 3 do examples and 3 don't examples as short lines",
+ "key_selling_points": ["point stated as benefit + proof"],
+ "communication_rules": ["rule, e.g. always say operator not node; always cite numbers with source"],
+ "restricted_claims": ["claims we must never make"],
+ "key_facts": ["fact — source name when known"],
+ "missing_information": ["what is missing — why it matters for content — what to ask the team"]
 }
-Rules: write in ${language === 'auto' ? 'the dominant language of the provided materials (Chinese if materials are Chinese, otherwise English)' : language}. Keep product names, tickers and established Web3 terms as-is. Never invent investors, partners, numbers, dates, exchanges or audits — put them in missing_information instead. Be specific, not generic.`
+Rules: write in ${language === 'auto' ? 'the dominant language of the provided materials (Chinese if materials are Chinese, otherwise English)' : language}. Keep product names, tickers and established Web3 terms as-is. Never invent investors, partners, numbers, dates, exchanges or audits — put them in missing_information instead. Ban generic filler (革命性/赋能/引领/game-changing/seamless).`
   const { data, model } = await runJson<DnaData>({ ...ctx, taskType: 'dna' }, {
     messages: [{ role: 'system', content: GLOBAL_SYSTEM_PROMPT }, { role: 'user', content: prompt }],
     maxTokens: 6000, temperature: 0.4

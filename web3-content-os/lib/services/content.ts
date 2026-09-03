@@ -1,7 +1,7 @@
 import { and, desc, eq, ilike, or, sql, count } from 'drizzle-orm'
 import { getDb, schema } from '../db'
 import { runChat } from '../ai'
-import type { TaskType } from '../ai/types'
+import type { ChatMessage, TaskType } from '../ai/types'
 import { OUTPUT_RULES } from '../prompts/system'
 import { buildProjectContext } from '../rag/context-builder'
 import { getTemplate } from './templates'
@@ -69,6 +69,7 @@ export function templateInstructions(t: ContentTemplate | null | undefined, inpu
     t?.promptInstructions ? `- Instructions: ${t.promptInstructions}` : '',
     input.angle ? `- Angle to use: ${input.angle}` : '- Angle: choose a fresh angle not used in recent content',
     input.brief ? `- Brief from the user: ${input.brief}` : '',
+    `WRITING METHOD (silent): 1) name the audience and the action you want; 2) write the one core message in one sentence; 3) choose the causal chain Trend → Problem → Insight → Mechanism → Proof → Why now → Action and keep only the links this format needs; 4) draft; 5) self-check: delete any sentence that could describe any project, verify every number/partner/date against PROJECT FACTS, make sure the first line works as a hook on the target platform.`,
     OUTPUT_RULES
   ].filter(Boolean)
   return lines.join('\n')
@@ -90,11 +91,20 @@ export async function generateContent(ctx: { orgId: string; projectId: string; u
     knowledgeLimit: template?.taskType === 'long_form' ? 12 : 6,
     extraInstructions: templateInstructions(template, input, project)
   })
-  const userMessage = `Create: ${template?.name ?? input.contentType ?? 'content'}${input.title ? ` titled "${input.title}"` : ''}.${input.brief ? `\nBrief: ${input.brief}` : ''}${input.variants && input.variants > 1 ? `\nProduce ${input.variants} distinct versions separated by a line containing only "---".` : ''}`
+  const userMessage = `Create: ${template?.name ?? input.contentType ?? 'content'}${input.title ? ` titled "${input.title}"` : ''}.${input.brief ? `\nBrief: ${input.brief}` : ''}${input.variants && input.variants > 1 ? `\nProduce ${input.variants} distinct versions (different hooks and angles) separated by a line containing only "---".` : ''}`
   const taskType = (template?.taskType as TaskType) || 'content_fast'
+  const messages: ChatMessage[] = [{ role: 'system', content: built.system }, { role: 'user', content: userMessage }]
+  // Long-form and quality content: plan first (outline + core message), then write. Two calls, much better structure.
+  if (taskType === 'long_form' || taskType === 'content_quality') {
+    const plan = await runChat({ ...ctx, taskType: 'content_fast', contentType: 'outline' }, {
+      messages: [{ role: 'system', content: built.system }, { role: 'user', content: `Before writing "${template?.name ?? input.contentType}", produce a short PLAN only (no prose): \n1. Audience + desired action (1 line)\n2. Core message (1 sentence)\n3. Logic chain (the causal links you will use, in order)\n4. Outline: section headings with 1 line each on what proves/moves the reader\n5. Facts you will use (only from PROJECT FACTS / knowledge; list [Missing: …] for gaps)\nKeep it under 250 words.${input.brief ? `\nBrief: ${input.brief}` : ''}` }],
+      temperature: 0.4, maxTokens: 900
+    })
+    messages.push({ role: 'assistant', content: plan.text }, { role: 'user', content: `Good. Now write the full ${template?.name ?? input.contentType} following that plan exactly. Output only the deliverable.` })
+  }
   const res = await runChat({ ...ctx, taskType, contentType: template?.contentType ?? input.contentType ?? null }, {
-    messages: [{ role: 'system', content: built.system }, { role: 'user', content: userMessage }],
-    temperature: taskType === 'long_form' ? 0.5 : 0.8
+    messages,
+    temperature: taskType === 'long_form' ? 0.5 : 0.75
   })
   const terms = await listTerminology(ctx.projectId)
   const body = applyTerminology(res.text.trim(), terms)

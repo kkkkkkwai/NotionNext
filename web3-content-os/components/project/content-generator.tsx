@@ -33,6 +33,7 @@ export function ContentGenerator({ projectId, initialTemplate, initialAngle, ini
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ item: { id: string; title: string; body: string; contentType: string }; sources: { type: string; label: string }[]; model: string; missing: string[] } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [advanced, setAdvanced] = useState(Boolean(initialAngle))
 
   useEffect(() => {
     api<{ templates: Template[]; categories: Cat[] }>('/api/templates').then((r) => {
@@ -91,17 +92,24 @@ export function ContentGenerator({ projectId, initialTemplate, initialAngle, ini
         <div className="space-y-4">
           <Card>
             <CardHeader title={selected ? selected.name : '请选择模板'} description={selected ? [selected.objective, selected.length ? `篇幅：${selected.length}` : ''].filter(Boolean).join(' · ') : '模板定义了目标、受众、结构、篇幅和所需事实。'} action={selected ? <div className="flex flex-wrap justify-end gap-1">{selected.requiredFacts.map((f) => <Badge key={f} tone="warn">需要 {f}</Badge>)}<Badge>{lbl(TASK_TYPE_LABELS, selected.taskType)}</Badge></div> : null} />
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
-              <Field label="语言"><Select value={language} onChange={(e) => setLanguage(e.target.value)}>{LANGS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}</Select></Field>
-              <Field label="语气覆盖（可选）"><Input value={tone} onChange={(e) => setTone(e.target.value)} placeholder="例如：机构风、轻松活泼、degen" /></Field>
-              <Field label="切入角度（可选）" hint="留空则由 AI 自动挑选一个近期未用过的新角度。"><Input value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="例如：为什么 DePIN 需要真实需求" /></Field>
-              <Field label="标题（可选）"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="内容库中显示的标题" /></Field>
-              <Field label="补充说明（可选）" className="sm:col-span-2"><Textarea rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="任何具体要求：活动、合作方、CTA、链接、必须提及的事实…" /></Field>
-              <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
-                <Switch checked={useMemory} onChange={setUseMemory} label="使用项目记忆" />
-                <label className="flex items-center gap-2 text-[13px] text-fg-muted">版本数<Select value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="h-8 w-20 py-1"><option value={1}>1</option><option value={3}>3</option></Select></label>
-                <div className="flex-1" />
-                <Button onClick={generate} loading={loading} disabled={!selected}><Wand2 className="h-4 w-4" /> 生成</Button>
+            <div className="space-y-4 p-5">
+              <Field label="想说什么？（可选）" hint="例如：本周上线 Binance Alpha，强调真实需求；或直接留空，AI 会根据项目记忆自动选角度。"><Textarea rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="活动、合作方、CTA、链接、必须提及的事实…" /></Field>
+              <button type="button" onClick={() => setAdvanced((v) => !v)} className="text-[12.5px] text-fg-muted hover:text-fg">{advanced ? '收起高级选项 ▴' : '高级选项（语言、角度、语气、多版本）▾'}</button>
+              {advanced ? (
+                <div className="grid gap-4 rounded-xl border border-line bg-white/[0.02] p-4 sm:grid-cols-2">
+                  <Field label="语言"><Select value={language} onChange={(e) => setLanguage(e.target.value)}>{LANGS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}</Select></Field>
+                  <Field label="语气覆盖"><Input value={tone} onChange={(e) => setTone(e.target.value)} placeholder="例如：机构风、轻松活泼、degen" /></Field>
+                  <Field label="切入角度" hint="留空则由 AI 挑选一个近期未用过的新角度。"><Input value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="例如：为什么 DePIN 需要真实需求" /></Field>
+                  <Field label="标题"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="内容库中显示的标题" /></Field>
+                  <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
+                    <Switch checked={useMemory} onChange={setUseMemory} label="使用项目记忆" />
+                    <label className="flex items-center gap-2 text-[13px] text-fg-muted">版本数<Select value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="h-8 w-20 py-1"><option value={1}>1</option><option value={3}>3</option></Select></label>
+                  </div>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[12px] text-fg-dim">{language === 'zh' ? '中文' : LANGS.find(([c]) => c === language)?.[1]}{useMemory ? ' · 使用项目记忆' : ''}{variants > 1 ? ` · ${variants} 个版本` : ''}</span>
+                <Button onClick={generate} loading={loading} disabled={!selected} size="lg"><Wand2 className="h-4 w-4" /> 生成</Button>
               </div>
             </div>
           </Card>
