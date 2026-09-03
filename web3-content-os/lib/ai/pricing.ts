@@ -57,5 +57,5 @@ export const PROVIDER_META: Record<string, { label: string; baseUrl: string; doc
   anthropic: { label: 'Anthropic Claude', baseUrl: 'https://api.anthropic.com', docs: 'https://console.anthropic.com/settings/keys', envKey: 'ANTHROPIC_API_KEY' },
   gemini: { label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', docs: 'https://aistudio.google.com/app/apikey', envKey: 'GOOGLE_API_KEY' },
   openrouter: { label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', docs: 'https://openrouter.ai/keys', envKey: 'OPENROUTER_API_KEY' },
-  openai_compatible: { label: 'OpenAI-compatible (DeepSeek, Grok, local…)', baseUrl: 'https://api.deepseek.com/v1', docs: '' }
+  openai_compatible: { label: 'OpenAI 兼容接口（DeepSeek、Grok、本地模型…）', baseUrl: 'https://api.deepseek.com/v1', docs: '' }
 }

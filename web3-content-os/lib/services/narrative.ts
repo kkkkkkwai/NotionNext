@@ -27,11 +27,11 @@ export async function getLatestNarrative(projectId: string) {
 
 export async function generateNarrative(ctx: { orgId: string; projectId: string; userId?: string | null }, opts: { language?: string } = {}) {
   const project = await getProject(ctx.orgId, ctx.projectId)
-  if (!project) throw new Error('Project not found')
+  if (!project) throw new Error('项目不存在')
   const [dna, facts] = await Promise.all([getLatestDna(ctx.projectId), listFacts(ctx.projectId)])
-  if (!dna) throw new Error('Generate the Project DNA first — the Narrative Engine builds on it.')
+  if (!dna) throw new Error('请先生成项目 DNA，叙事引擎需要基于 DNA 构建。')
   const hits = await searchKnowledge(ctx.orgId, ctx.projectId, 'market trend industry problem why now ecosystem growth token value', 6)
-  const lang = opts.language || 'the language of the Project DNA'
+  const lang = opts.language || 'Chinese (Simplified), keeping tickers and Web3 terms as-is'
   const { data, model } = await runJson<NarrativeData>({ ...ctx, taskType: 'narrative' }, {
     messages: [
       { role: 'system', content: GLOBAL_SYSTEM_PROMPT },
@@ -56,7 +56,7 @@ Write in ${lang}. No fabricated numbers, partners, or exchanges — use [Missing
     ],
     maxTokens: 12000, temperature: 0.6
   }, null as unknown as NarrativeData)
-  if (!data || !data.core_narrative) throw new Error('The model did not return a valid narrative. Try again.')
+  if (!data || !data.core_narrative) throw new Error('模型没有返回有效的叙事结果，请重试。')
   const db = await getDb()
   const latest = await getLatestNarrative(ctx.projectId)
   const [row] = await db.insert(schema.narratives).values({ projectId: ctx.projectId, version: (latest?.version ?? 0) + 1, data: data as unknown as Record<string, unknown>, model }).returning()

@@ -40,8 +40,8 @@ export async function addMemory(projectId: string, input: MemoryInput, actor: st
 export async function updateMemory(projectId: string, memoryId: string, patch: Partial<MemoryInput> & { status?: string }, actor: string) {
   const db = await getDb()
   const existing = await db.query.projectMemories.findFirst({ where: and(eq(schema.projectMemories.id, memoryId), eq(schema.projectMemories.projectId, projectId)) })
-  if (!existing) throw new Error('Memory not found')
-  if (existing.locked && actor === 'ai') throw new Error('Memory is locked')
+  if (!existing) throw new Error('记忆不存在')
+  if (existing.locked && actor === 'ai') throw new Error('该记忆已锁定')
   const [m] = await db.update(schema.projectMemories).set({ ...patch, updatedAt: new Date() }).where(eq(schema.projectMemories.id, memoryId)).returning()
   const event = patch.status === 'archived' ? 'deleted' : patch.status === 'active' && existing.status === 'archived' ? 'restored' : patch.pinned !== undefined && patch.pinned !== existing.pinned ? (patch.pinned ? 'pinned' : 'unpinned') : patch.locked !== undefined && patch.locked !== existing.locked ? (patch.locked ? 'locked' : 'unlocked') : 'updated'
   await logEvent(projectId, memoryId, event, { before: { title: existing.title, content: existing.content }, after: { title: m.title, content: m.content } }, actor)
@@ -107,7 +107,7 @@ export async function extractMemoriesFromTurn(ctx: { orgId: string; projectId: s
   if (!looksLikeRule && !looksLikeFact) return []
   const { data } = await runJson<{ memories: MemoryCandidate[] }>({ ...ctx, taskType: 'memory' }, {
     messages: [
-      { role: 'system', content: 'You maintain the long-term memory of a Web3 project\'s AI brand manager. Decide whether the user message contains durable information that must be remembered for ALL future content. Temporary requests like "make it shorter", "rewrite this", "try another angle" are NOT memories. Durable items are: terminology renames ("call X Y from now on"), brand rules ("never say node, say operator"), decisions ("we will not list on DEX first"), preferences ("always end tweets with a question"), and explicit fact updates ("token supply is now 10B"). Respond with JSON only.' },
+      { role: 'system', content: 'You maintain the long-term memory of a Web3 project\'s AI brand manager. Decide whether the user message contains durable information that must be remembered for ALL future content. Temporary requests like "make it shorter", "rewrite this", "try another angle" are NOT memories. Durable items are: terminology renames ("call X Y from now on"), brand rules ("never say node, say operator"), decisions ("we will not list on DEX first"), preferences ("always end tweets with a question"), and explicit fact updates ("token supply is now 10B"). Respond with JSON only. Write memory titles/contents in the language the user wrote in (Chinese stays Chinese).' },
       { role: 'user', content: `USER MESSAGE:\n${userMessage}\n\nASSISTANT REPLY (for context):\n${assistantReply.slice(0, 1500)}\n\nReturn {"memories":[{"type":"terminology|brand_rule|decision|preference|tokenomics|note","title":"short title","content":"the rule in one sentence, in the user's language","oldValue":"old term if rename","newValue":"new term if rename","factKey":"snake_case fact key if this is a fact update","factValue":"the new value if fact update"}]} — return an empty list when nothing durable is present.` }
     ],
     maxTokens: 800

@@ -95,11 +95,11 @@ export async function resolveModel(orgId: string, task: TaskType): Promise<Resol
     const model = task === 'embedding'
       ? process.env.SYSTEM_EMBEDDING_MODEL || DEFAULT_MODELS[sys.kind]?.embedding || ''
       : settings?.model || (tierOf(task) === 'fast' && process.env.SYSTEM_DEFAULT_MODEL ? process.env.SYSTEM_DEFAULT_MODEL : pickModel(sys.kind, task))
-    if (task === 'embedding' && !model) throw new AIError('No embedding model available for the system provider', 424)
+    if (task === 'embedding' && !model) throw new AIError('系统 Provider 没有可用的 Embedding 模型', 424)
     return { creds, model, temperature: settings?.temperature ?? 0.7, maxTokens: settings?.maxTokens ?? defaultMaxTokens(task), providerName: `System (${PROVIDER_META[sys.kind].label})`, isSystemKey: true }
   }
 
-  throw new AIError('No AI provider configured. Add an API key in Settings → AI Providers.', 424)
+  throw new AIError('尚未配置 AI 模型。请到「设置 → AI 模型」添加你的 API Key。', 424)
 }
 
 export async function hasAnyProvider(orgId: string) {

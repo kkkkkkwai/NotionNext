@@ -28,7 +28,7 @@ export const anthropicAdapter: ProviderAdapter = {
       // Thinking is intentionally omitted so any Claude model (Haiku 4.5 through Opus 5) accepts the request.
       // Temperature is omitted: it is rejected on the current-generation models.
       const res = await client(creds).messages.create({ model: params.model, max_tokens: params.maxTokens ?? 8192, system, messages }, { signal: params.signal })
-      if (res.stop_reason === 'refusal') throw new AIError('The model declined this request (safety refusal).', 400, 'anthropic')
+      if (res.stop_reason === 'refusal') throw new AIError('模型拒绝了本次请求（安全策略）。', 400, 'anthropic')
       const text = res.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('')
       return { text, usage: { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens }, model: res.model, stopReason: res.stop_reason ?? undefined }
     } catch (err) {

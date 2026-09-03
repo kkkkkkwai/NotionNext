@@ -1,4 +1,5 @@
 'use client'
+import { contentTypeLabel, platformLabel, categoryLabel, factCategoryLabel, roleLabel, languageLabel, statusLabel, label as lbl, RULE_TYPE_LABELS, SOURCE_TYPE_LABELS, TX_TYPE_LABELS, TIER_LABELS, TASK_TYPE_LABELS, EVENT_LABELS, FORMAT_LABELS, TASK_CLASS_LABELS, READINESS_LABELS } from '@/lib/labels'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Send, Plus, Trash2, Square, Brain, BookOpen, Database, MessageSquare, Sparkles } from 'lucide-react'
@@ -11,7 +12,7 @@ import { cn, relativeTime } from '@/lib/utils'
 type Conv = { id: string; title: string; updatedAt: string }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string; meta?: { sources?: { type: string; label: string }[]; model?: string }; streaming?: boolean; status?: string }
 
-const SUGGESTIONS = ['What are our core selling points?', '帮我写今天的 Twitter', 'What have we not talked about yet?', 'What did we publish this week?', 'What would an investor ask us?', '上线前 7 天应该发什么？']
+const SUGGESTIONS = ['我们的核心卖点是什么？', '帮我写今天的推文', '还有哪些角度没讲过？', '本周发布了什么？', '投资人可能会问什么？', '上线前 7 天应该发什么？']
 
 export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectId: string; projectName: string; tokenSymbol: string | null }) {
   const toast = useToast()
@@ -31,7 +32,7 @@ export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectI
     const r = await api<{ conversations: Conv[] }>(`/api/projects/${projectId}/chat/conversations`)
     setConvs(r.conversations)
   }, [projectId])
-  useEffect(() => { loadConvs().catch((e) => toast.error('Could not load conversations', errorMessage(e))) }, [loadConvs, toast])
+  useEffect(() => { loadConvs().catch((e) => toast.error('无法加载对话', errorMessage(e))) }, [loadConvs, toast])
   useEffect(() => {
     if (busyRef.current) return // a stream is in progress: keep the optimistic messages
     if (!active) {
@@ -50,7 +51,7 @@ export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectI
     busyRef.current = true
     setContext(null)
     const tempId = 'tmp-' + Date.now()
-    setMessages((m) => [...m, { id: tempId + 'u', role: 'user', content: msg }, { id: tempId, role: 'assistant', content: '', streaming: true, status: 'Reading project memory…' }])
+    setMessages((m) => [...m, { id: tempId + 'u', role: 'user', content: msg }, { id: tempId, role: 'assistant', content: '', streaming: true, status: '正在读取项目记忆…' }])
     const ctrl = new AbortController()
     abort.current = ctrl
     let convId = active
@@ -67,18 +68,18 @@ export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectI
         else if (event === 'message') setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, id: String(d.id), content: String(d.content), streaming: false, meta: { model: String(d.model) } } : x)))
         else if (event === 'memories') {
           const list = d as unknown as { title: string }[]
-          toast.success('Saved to long-term memory', list.map((x) => x.title).join(' · '))
+          toast.success('已保存到长期记忆', list.map((x) => x.title).join(' · '))
         } else if (event === 'error') {
           const message = String(d.message)
           setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, content: x.content || `⚠️ ${message}`, streaming: false, status: undefined } : x)))
-          toast.error('AI error', message)
+          toast.error('AI 出错', message)
         }
       }, ctrl.signal)
     } catch (e) {
       if (!ctrl.signal.aborted) {
         const message = errorMessage(e)
         setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, content: `⚠️ ${message}`, streaming: false, status: undefined } : x)))
-        toast.error('Request failed', message)
+        toast.error('请求失败', message)
       }
     } finally {
       busyRef.current = false
@@ -98,22 +99,22 @@ export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectI
     <div className="flex h-[calc(100vh-8rem)] flex-col lg:h-[calc(100vh-6.5rem)]">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary/80">Project AI Brand Manager</div>
-          <h1 className="text-2xl font-semibold tracking-tight text-fg">Ask {aiName}</h1>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary/80">项目 AI 品牌经理</div>
+          <h1 className="text-2xl font-semibold tracking-tight text-fg">{aiName} 问答</h1>
         </div>
-        <Switch checked={useMemory} onChange={setUseMemory} label="Use Project Memory" />
+        <Switch checked={useMemory} onChange={setUseMemory} label="使用项目记忆" />
       </div>
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[220px_1fr_240px]">
         <aside className="card hidden min-h-0 flex-col lg:flex">
-          <button onClick={() => setActive(null)} className="m-2 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[13px] text-fg hover:bg-white/[0.04]"><Plus className="h-3.5 w-3.5" /> New conversation</button>
+          <button onClick={() => setActive(null)} className="m-2 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[13px] text-fg hover:bg-white/[0.04]"><Plus className="h-3.5 w-3.5" /> 新建对话</button>
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
             {convs.map((c) => (
               <div key={c.id} className={cn('group flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12.5px]', active === c.id ? 'bg-white/[0.06] text-fg' : 'text-fg-muted hover:bg-white/[0.03]')}>
                 <button onClick={() => setActive(c.id)} className="min-w-0 flex-1 truncate text-left" title={c.title}>{c.title}</button>
-                <button onClick={() => remove(c.id)} className="hidden text-fg-dim hover:text-danger group-hover:block"><Trash2 className="h-3 w-3" /></button>
+                <button onClick={() => remove(c.id)} className="hidden text-fg-dim hover:text-danger group-hover:block" title="删除对话"><Trash2 className="h-3 w-3" /></button>
               </div>
             ))}
-            {convs.length === 0 ? <div className="px-2 py-4 text-[12px] text-fg-dim">No conversations yet.</div> : null}
+            {convs.length === 0 ? <div className="px-2 py-4 text-[12px] text-fg-dim">暂无对话。</div> : null}
           </div>
         </aside>
         <section className="card flex min-h-0 flex-col">
@@ -121,8 +122,8 @@ export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectI
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquare className="h-5 w-5" /></div>
-                <div className="text-[15px] font-medium text-fg">{aiName} knows this project.</div>
-                <p className="mt-1 max-w-md text-[13px] text-fg-muted">Facts, DNA, knowledge base, memory and content history — you never have to re-explain the project. Rules you state here (“from now on…”) are remembered.</p>
+                <div className="text-[15px] font-medium text-fg">{aiName} 了解这个项目。</div>
+                <p className="mt-1 max-w-md text-[13px] text-fg-muted">事实、DNA、知识库、记忆与内容历史一应俱全——你无需再重复介绍项目。你在这里定下的规则（“从现在起……”）都会被记住。</p>
                 <div className="mt-5 flex max-w-lg flex-wrap justify-center gap-2">{SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)} className="rounded-full border border-line px-3 py-1.5 text-[12.5px] text-fg-muted transition hover:border-primary/40 hover:text-fg">{s}</button>)}</div>
               </div>
             ) : (
@@ -142,26 +143,26 @@ export function AskProjectAI({ projectId, projectName, tokenSymbol }: { projectI
           </div>
           <div className="border-t border-line p-3">
             <div className="flex items-end gap-2 rounded-xl border border-line bg-bg-soft p-2 focus-within:border-primary/50">
-              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} rows={1} placeholder={`Ask ${aiName} anything, or say “帮我写今天的推文”`} className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-[14px] text-fg outline-none placeholder:text-fg-dim" />
-              {busy ? <button onClick={stop} className="rounded-lg bg-white/[0.08] p-2.5 text-fg hover:bg-white/[0.12]" title="Stop"><Square className="h-4 w-4" /></button> : <button onClick={() => send()} disabled={!input.trim()} className="rounded-lg bg-primary p-2.5 text-primary-text disabled:opacity-40" title="Send"><Send className="h-4 w-4" /></button>}
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} rows={1} placeholder={`向 ${aiName} 提问任何问题，或直接说“帮我写今天的推文”`} className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-[14px] text-fg outline-none placeholder:text-fg-dim" />
+              {busy ? <button onClick={stop} className="rounded-lg bg-white/[0.08] p-2.5 text-fg hover:bg-white/[0.12]" title="停止"><Square className="h-4 w-4" /></button> : <button onClick={() => send()} disabled={!input.trim()} className="rounded-lg bg-primary p-2.5 text-primary-text disabled:opacity-40" title="发送"><Send className="h-4 w-4" /></button>}
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-[11px] text-fg-dim"><span>Enter to send · Shift+Enter for newline</span><span>Isolated to {projectName}</span></div>
+            <div className="mt-1.5 flex items-center justify-between text-[11px] text-fg-dim"><span>Enter 发送 · Shift+Enter 换行</span><span>仅限 {projectName} 项目范围</span></div>
           </div>
         </section>
         <aside className="card hidden min-h-0 flex-col overflow-y-auto lg:flex">
-          <div className="border-b border-line px-4 py-3 text-[12px] font-semibold uppercase tracking-wide text-fg-dim">Context used</div>
+          <div className="border-b border-line px-4 py-3 text-[12px] font-semibold uppercase tracking-wide text-fg-dim">本次使用的上下文</div>
           {context ? (
             <div className="space-y-3 p-4 text-[12.5px]">
-              <div className="flex items-center justify-between text-fg-muted"><span>Task class</span><Badge>{context.taskClass}</Badge></div>
-              <div className="flex items-center justify-between text-fg-muted"><span>Context size</span><span className="text-fg">~{context.tokens} tokens</span></div>
+              <div className="flex items-center justify-between text-fg-muted"><span>任务类型</span><Badge>{lbl(TASK_CLASS_LABELS, context.taskClass)}</Badge></div>
+              <div className="flex items-center justify-between text-fg-muted"><span>上下文大小</span><span className="text-fg">约 {context.tokens} tokens</span></div>
               {(['fact', 'memory', 'chunk'] as const).map((t) => {
                 const items = context.sources.filter((s) => s.type === t)
                 if (!items.length) return null
-                return <div key={t}><div className="mb-1 flex items-center gap-1.5 text-fg-muted">{t === 'fact' ? <Database className="h-3.5 w-3.5" /> : t === 'memory' ? <Brain className="h-3.5 w-3.5" /> : <BookOpen className="h-3.5 w-3.5" />}{t === 'fact' ? 'Facts' : t === 'memory' ? 'Memories' : 'Knowledge'} ({items.length})</div><ul className="space-y-0.5">{items.slice(0, 8).map((s, i) => <li key={i} className="truncate text-fg-dim" title={s.label}>· {s.label}</li>)}</ul></div>
+                return <div key={t}><div className="mb-1 flex items-center gap-1.5 text-fg-muted">{t === 'fact' ? <Database className="h-3.5 w-3.5" /> : t === 'memory' ? <Brain className="h-3.5 w-3.5" /> : <BookOpen className="h-3.5 w-3.5" />}{t === 'fact' ? '事实' : t === 'memory' ? '记忆' : '知识'}（{items.length}）</div><ul className="space-y-0.5">{items.slice(0, 8).map((s, i) => <li key={i} className="truncate text-fg-dim" title={s.label}>· {s.label}</li>)}</ul></div>
               })}
             </div>
           ) : (
-            <div className="p-4 text-[12.5px] text-fg-dim">After each question you can see which facts, memories and documents the AI read — only from this project.<div className="mt-3 space-y-1"><Link href={`/projects/${projectId}/memory`} className="block text-primary hover:underline">Manage memory →</Link><Link href={`/projects/${projectId}/knowledge`} className="block text-primary hover:underline">Add materials →</Link></div></div>
+            <div className="p-4 text-[12.5px] text-fg-dim">每次提问后，你可以看到 AI 读取了哪些事实、记忆和文档——全部仅来自本项目。<div className="mt-3 space-y-1"><Link href={`/projects/${projectId}/memory`} className="block text-primary hover:underline">管理记忆 →</Link><Link href={`/projects/${projectId}/knowledge`} className="block text-primary hover:underline">添加资料 →</Link></div></div>
           )}
         </aside>
       </div>

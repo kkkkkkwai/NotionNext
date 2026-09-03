@@ -23,10 +23,10 @@ export function ProjectSettingsDialog({ open, onClose, project }: { open: boolea
       fd.append('file', file)
       const r = await api<{ logoUrl: string }>(`/api/projects/${project.id}/logo`, { method: 'POST', body: fd })
       setForm((f) => ({ ...f, logoUrl: r.logoUrl }))
-      toast.success('Logo uploaded')
+      toast.success('Logo 已上传')
       router.refresh()
     } catch (e) {
-      toast.error('Upload failed', errorMessage(e))
+      toast.error('上传失败', errorMessage(e))
     } finally {
       setUploading(false)
     }
@@ -36,35 +36,35 @@ export function ProjectSettingsDialog({ open, onClose, project }: { open: boolea
     setSaving(true)
     try {
       await api(`/api/projects/${project.id}`, { method: 'PATCH', json: form })
-      toast.success('Project updated')
+      toast.success('项目已更新')
       onClose()
       router.refresh()
     } catch (e) {
-      toast.error('Save failed', errorMessage(e))
+      toast.error('保存失败', errorMessage(e))
     } finally {
       setSaving(false)
     }
   }
   return (
     <>
-      <Dialog open={open} onClose={onClose} title="Project settings" size="lg" footer={<><Button variant="danger" size="sm" onClick={() => setConfirm(true)}>Archive project</Button><div className="flex-1" /><Button variant="ghost" onClick={onClose}>Cancel</Button><Button onClick={save} loading={saving}>Save</Button></>}>
+      <Dialog open={open} onClose={onClose} title="项目设置" size="lg" footer={<><Button variant="danger" size="sm" onClick={() => setConfirm(true)}>归档项目</Button><div className="flex-1" /><Button variant="ghost" onClick={onClose}>取消</Button><Button onClick={save} loading={saving}>保存</Button></>}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name"><Input value={form.name} onChange={set('name')} /></Field>
+          <Field label="项目名称"><Input value={form.name} onChange={set('name')} /></Field>
           <Field label="Slogan"><Input value={form.slogan} onChange={set('slogan')} /></Field>
-          <Field label="Industry"><Input value={form.industry} onChange={set('industry')} /></Field>
-          <Field label="Logo" hint="Upload PNG/JPG/SVG (max 2MB) or paste a URL"><div className="flex items-center gap-2">{form.logoUrl ? <img src={form.logoUrl} alt="" className="h-9 w-9 rounded-lg object-cover" /> : null}<Input value={form.logoUrl} onChange={set('logoUrl')} placeholder="https://…/logo.png" /><label className="shrink-0"><span className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-line px-3 text-[13px] text-fg hover:bg-white/[0.05]">{uploading ? 'Uploading…' : 'Upload'}</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0])} /></label></div></Field>
-          <Field label="Website"><Input value={form.website} onChange={set('website')} /></Field>
+          <Field label="行业"><Input value={form.industry} onChange={set('industry')} /></Field>
+          <Field label="Logo" hint="上传 PNG/JPG/SVG（最大 2MB）或粘贴图片 URL"><div className="flex items-center gap-2">{form.logoUrl ? <img src={form.logoUrl} alt="" className="h-9 w-9 rounded-lg object-cover" /> : null}<Input value={form.logoUrl} onChange={set('logoUrl')} placeholder="https://…/logo.png" /><label className="shrink-0"><span className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-line px-3 text-[13px] text-fg hover:bg-white/[0.05]">{uploading ? '上传中…' : '上传'}</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0])} /></label></div></Field>
+          <Field label="官网"><Input value={form.website} onChange={set('website')} /></Field>
           <Field label="Twitter / X"><Input value={form.twitter} onChange={set('twitter')} /></Field>
           <Field label="Telegram"><Input value={form.telegram} onChange={set('telegram')} /></Field>
           <Field label="Discord"><Input value={form.discord} onChange={set('discord')} /></Field>
-          <Field label="Token Name"><Input value={form.tokenName} onChange={set('tokenName')} /></Field>
-          <Field label="Token Symbol"><Input value={form.tokenSymbol} onChange={set('tokenSymbol')} /></Field>
-          <Field label="Launch Date"><Input type="date" value={form.launchDate} onChange={set('launchDate')} /></Field>
-          <Field label="Positioning"><Input value={form.positioning} onChange={set('positioning')} /></Field>
-          <Field label="Founder description" className="sm:col-span-2"><Textarea rows={4} value={form.idea} onChange={set('idea')} /></Field>
+          <Field label="Token 名称"><Input value={form.tokenName} onChange={set('tokenName')} /></Field>
+          <Field label="Token 符号"><Input value={form.tokenSymbol} onChange={set('tokenSymbol')} /></Field>
+          <Field label="上线日期"><Input type="date" value={form.launchDate} onChange={set('launchDate')} /></Field>
+          <Field label="项目定位"><Input value={form.positioning} onChange={set('positioning')} /></Field>
+          <Field label="创始人描述" className="sm:col-span-2"><Textarea rows={4} value={form.idea} onChange={set('idea')} /></Field>
         </div>
       </Dialog>
-      <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} title="Archive this project?" description="The project and its AI brain are hidden from the workspace. Data is kept." confirmLabel="Archive" danger onConfirm={async () => { await api(`/api/projects/${project.id}`, { method: 'DELETE' }); router.push('/dashboard'); router.refresh() }} />
+      <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} title="归档此项目？" description="项目及其 AI 大脑将从工作区隐藏，数据会保留。" confirmLabel="归档" danger onConfirm={async () => { await api(`/api/projects/${project.id}`, { method: 'DELETE' }); router.push('/dashboard'); router.refresh() }} />
     </>
   )
 }

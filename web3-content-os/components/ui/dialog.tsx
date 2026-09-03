@@ -28,7 +28,7 @@ export function Dialog({ open, onClose, title, description, children, footer, si
               {title ? <h2 className="text-[15px] font-semibold text-fg">{title}</h2> : null}
               {description ? <p className="mt-0.5 text-[13px] text-fg-muted">{description}</p> : null}
             </div>
-            <button onClick={onClose} className="rounded-lg p-1 text-fg-muted hover:bg-white/[0.06] hover:text-fg" aria-label="Close"><X className="h-4 w-4" /></button>
+            <button onClick={onClose} className="rounded-lg p-1 text-fg-muted hover:bg-white/[0.06] hover:text-fg" aria-label="关闭"><X className="h-4 w-4" /></button>
           </div>
         )}
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
@@ -39,16 +39,16 @@ export function Dialog({ open, onClose, title, description, children, footer, si
   )
 }
 
-export function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmLabel = 'Confirm', danger }: { open: boolean; onClose: () => void; onConfirm: () => void | Promise<void>; title: string; description?: string; confirmLabel?: string; danger?: boolean }) {
+export function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmLabel = '确认', danger }: { open: boolean; onClose: () => void; onConfirm: () => void | Promise<void>; title: string; description?: string; confirmLabel?: string; danger?: boolean }) {
   const [loading, setLoading] = React.useState(false)
   return (
     <Dialog open={open} onClose={onClose} title={title} description={description} size="sm" footer={
       <>
-        <button className="rounded-xl px-3 py-2 text-sm text-fg-muted hover:text-fg" onClick={onClose}>Cancel</button>
-        <button className={cn('rounded-xl px-3 py-2 text-sm font-medium', danger ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-primary text-primary-text')} disabled={loading} onClick={async () => { setLoading(true); try { await onConfirm(); onClose() } finally { setLoading(false) } }}>{loading ? 'Working…' : confirmLabel}</button>
+        <button className="rounded-xl px-3 py-2 text-sm text-fg-muted hover:text-fg" onClick={onClose}>取消</button>
+        <button className={cn('rounded-xl px-3 py-2 text-sm font-medium', danger ? 'bg-danger/20 text-danger hover:bg-danger/30' : 'bg-primary text-primary-text')} disabled={loading} onClick={async () => { setLoading(true); try { await onConfirm(); onClose() } finally { setLoading(false) } }}>{loading ? '处理中…' : confirmLabel}</button>
       </>
     }>
-      <span className="sr-only">Confirm</span>
+      <span className="sr-only">确认</span>
     </Dialog>
   )
 }

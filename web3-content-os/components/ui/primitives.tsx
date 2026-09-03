@@ -81,7 +81,7 @@ export function ErrorState({ message, retry }: { message: string; retry?: () => 
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-[13px] text-danger">
       <span className="break-words">{message}</span>
-      {retry ? <button onClick={retry} className="shrink-0 underline underline-offset-2">Retry</button> : null}
+      {retry ? <button onClick={retry} className="shrink-0 underline underline-offset-2">重试</button> : null}
     </div>
   )
 }

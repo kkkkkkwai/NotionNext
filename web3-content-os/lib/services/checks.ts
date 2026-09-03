@@ -26,7 +26,7 @@ export async function scanConsistency(projectId: string): Promise<{ issues: Cons
     const olds = new Set(versions.map((v) => v.oldValue).filter((v): v is string => Boolean(v && v !== f.value && v.length >= 2)))
     for (const o of olds) checks.push({ key: f.label, oldValue: o, newValue: f.value, kind: 'fact' })
   }
-  for (const t of terms) checks.push({ key: 'Terminology', oldValue: t.oldTerm, newValue: t.newTerm, kind: 'terminology' })
+  for (const t of terms) checks.push({ key: '术语', oldValue: t.oldTerm, newValue: t.newTerm, kind: 'terminology' })
   const issues: ConsistencyIssue[] = []
   for (const it of items) {
     for (const c of checks) {
@@ -54,7 +54,7 @@ export async function applyConsistencyFixes(projectId: string, userId: string | 
     if (!item) continue
     const body = applyTerminology(item.body, reps.map((r) => ({ oldTerm: r.oldValue, newTerm: r.newValue })))
     if (body !== item.body) {
-      await saveContentBody(projectId, contentId, body, userId, 'Consistency update')
+      await saveContentBody(projectId, contentId, body, userId, '一致性更新')
       updated++
     }
   }
@@ -65,16 +65,16 @@ export async function applyConsistencyFixes(projectId: string, userId: string | 
 export interface RiskFinding { level: 'high' | 'medium' | 'low'; phrase: string; reason: string; suggestion?: string; index?: number }
 
 const RISK_PATTERNS: { re: RegExp; level: RiskFinding['level']; reason: string }[] = [
-  { re: /guaranteed (returns?|profits?|yield|income)|guarantee(d)? (to )?(make|earn)|risk[- ]free|no risk|zero risk|100% (safe|profit|return|gain)|can'?t lose|cannot lose|sure (thing|win)|稳赚|保本|保底收益|固定收益|无风险|零风险|必涨|稳定收益|保证收益|包赚|躺赚|100%收益/i, level: 'high', reason: 'Promise of guaranteed or risk-free returns' },
-  { re: /\b(will|gonna|going to) (pump|moon|10x|100x|1000x|double|triple)\b|to the moon|next 100x|price (will|is going to) (rise|increase|go up)|暴涨|翻倍|百倍|千倍|财富自由|一夜暴富/i, level: 'high', reason: 'Price prediction / pump language' },
-  { re: /\b(\d{2,4})\s?%\s?(apy|apr|returns?|yield|monthly|daily)\b|年化\s?\d{2,}%|日化|月化/i, level: 'medium', reason: 'Specific yield figure — must be a verified project fact and carry a risk disclaimer' },
-  { re: /\b(backed by|partnered with|partnership with|in partnership with|invested by|投资方|合作伙伴|战略合作)\b/i, level: 'medium', reason: 'Partner/investor claim — verify against confirmed Project Facts' },
-  { re: /\b(listed on|listing on|now on|trading on|上线|登陆)\s+(binance|coinbase|okx|bybit|kraken|kucoin|gate|bitget|htx|upbit|bithumb|币安)\b/i, level: 'medium', reason: 'Exchange listing claim — verify with confirmed facts' },
-  { re: /\b(sec|regulated|licensed|compliant with|fully compliant|approved by)\b|监管批准|合规牌照|持牌/i, level: 'medium', reason: 'Regulatory/compliance claim requires legal verification' },
-  { re: /\b(audited by|audit(ed)? (by|from))\b|审计机构|已审计/i, level: 'medium', reason: 'Audit claim — verify auditor is a confirmed fact' },
-  { re: /\b(investment advice|financial advice|buy now|invest now|don'?t miss out|last chance)\b|投资建议|马上买入|抓紧上车|最后机会/i, level: 'low', reason: 'Investment solicitation wording' },
-  { re: /\b(best|#1|number one|the only|first ever|revolutionary|unprecedented)\b|全球第一|唯一|史无前例|颠覆/i, level: 'low', reason: 'Unsubstantiated superlative' },
-  { re: /\[Missing:[^\]]*\]/i, level: 'low', reason: 'Unfilled placeholder — content is not ready to publish' }
+  { re: /guaranteed (returns?|profits?|yield|income)|guarantee(d)? (to )?(make|earn)|risk[- ]free|no risk|zero risk|100% (safe|profit|return|gain)|can'?t lose|cannot lose|sure (thing|win)|稳赚|保本|保底收益|固定收益|无风险|零风险|必涨|稳定收益|保证收益|包赚|躺赚|100%收益/i, level: 'high', reason: '承诺保本 / 无风险收益' },
+  { re: /\b(will|gonna|going to) (pump|moon|10x|100x|1000x|double|triple)\b|to the moon|next 100x|price (will|is going to) (rise|increase|go up)|暴涨|翻倍|百倍|千倍|财富自由|一夜暴富/i, level: 'high', reason: '价格预测 / 喊单式表述' },
+  { re: /\b(\d{2,4})\s?%\s?(apy|apr|returns?|yield|monthly|daily)\b|年化\s?\d{2,}%|日化|月化/i, level: 'medium', reason: '具体收益率数字，必须是已确认的项目事实并附风险提示' },
+  { re: /\b(backed by|partnered with|partnership with|in partnership with|invested by|投资方|合作伙伴|战略合作)\b/i, level: 'medium', reason: '合作方 / 投资方声明，需与已确认的项目事实核对' },
+  { re: /\b(listed on|listing on|now on|trading on|上线|登陆)\s+(binance|coinbase|okx|bybit|kraken|kucoin|gate|bitget|htx|upbit|bithumb|币安)\b/i, level: 'medium', reason: '交易所上线声明，需与已确认事实核对' },
+  { re: /\b(sec|regulated|licensed|compliant with|fully compliant|approved by)\b|监管批准|合规牌照|持牌/i, level: 'medium', reason: '监管 / 合规声明需法务确认' },
+  { re: /\b(audited by|audit(ed)? (by|from))\b|审计机构|已审计/i, level: 'medium', reason: '审计声明，需确认审计机构为已确认事实' },
+  { re: /\b(investment advice|financial advice|buy now|invest now|don'?t miss out|last chance)\b|投资建议|马上买入|抓紧上车|最后机会/i, level: 'low', reason: '投资劝诱类措辞' },
+  { re: /\b(best|#1|number one|the only|first ever|revolutionary|unprecedented)\b|全球第一|唯一|史无前例|颠覆/i, level: 'low', reason: '缺乏依据的最高级表述' },
+  { re: /\[Missing:[^\]]*\]/i, level: 'low', reason: '存在未填写的占位符，内容尚不能发布' }
 ]
 
 /** Deterministic lexical risk scan (fast, no AI), plus fact cross-check for partners/exchanges/investors. */
@@ -93,7 +93,7 @@ export async function scanRisk(projectId: string, text: string): Promise<{ findi
     const after = text.slice((f.index ?? 0) + f.phrase.length, (f.index ?? 0) + f.phrase.length + 80).split(/[.,;\n。，]/)[0].trim().toLowerCase()
     const names = after.split(/\s+(?:and|&|,|、|和)\s+|,|、/).map((s) => s.trim()).filter((s) => s.length > 1)
     const unknown = names.filter((n) => n && !partners.includes(n))
-    if (unknown.length && names.length) f.suggestion = `Not found in confirmed facts: ${unknown.slice(0, 3).join(', ')}`
+    if (unknown.length && names.length) f.suggestion = `未在已确认事实中找到：${unknown.slice(0, 3).join('、')}`
   }
   const score = findings.some((f) => f.level === 'high') ? 'high' : findings.some((f) => f.level === 'medium') ? 'medium' : findings.length ? 'low' : 'clean'
   return { findings, score }
@@ -103,9 +103,9 @@ export async function scanRisk(projectId: string, text: string): Promise<{ findi
 export async function rewriteSafely(ctx: { orgId: string; projectId: string; userId?: string | null }, contentId: string, findings: RiskFinding[]) {
   const db = await getDb()
   const project = await getProject(ctx.orgId, ctx.projectId)
-  if (!project) throw new Error('Project not found')
+  if (!project) throw new Error('项目不存在')
   const item = await db.query.contentItems.findFirst({ where: and(eq(schema.contentItems.id, contentId), eq(schema.contentItems.projectId, ctx.projectId)) })
-  if (!item) throw new Error('Content not found')
+  if (!item) throw new Error('内容不存在')
   const built = await buildProjectContext(ctx.orgId, project, { request: 'compliance rewrite ' + item.title, includeContentHistory: false, knowledgeLimit: 3, extraInstructions: OUTPUT_RULES })
   const res = await runChat({ ...ctx, taskType: 'risk', contentType: item.contentType }, {
     messages: [
@@ -115,7 +115,7 @@ export async function rewriteSafely(ctx: { orgId: string; projectId: string; use
     temperature: 0.4
   })
   const body = res.text.trim()
-  const updated = await saveContentBody(ctx.projectId, contentId, body, ctx.userId ?? null, 'Safe rewrite')
+  const updated = await saveContentBody(ctx.projectId, contentId, body, ctx.userId ?? null, '安全改写')
   return updated
 }
 

@@ -21,7 +21,7 @@ async function run(viewport, tag) {
     const status = res?.status()
     if (p === '/nonexistent-page' ? status !== 404 : status !== 200) problems.push(`[${tag}] ${p} → ${status}`)
     const body = await page.textContent('body')
-    if (/Application error|Something went wrong|Unhandled Runtime/.test(body ?? '')) problems.push(`[${tag}] ${p} shows error boundary`)
+    if (/Application error|Something went wrong|出错了|Unhandled Runtime/.test(body ?? '')) problems.push(`[${tag}] ${p} shows error boundary`)
     if (shots) await page.screenshot({ path: `${shots}/${tag}-${p.replace(/[^a-z0-9]+/gi, '_')}.png`, fullPage: false })
   }
   // interactive: library → open first item → AI editor "Shorter"
@@ -29,8 +29,8 @@ async function run(viewport, tag) {
   const first = page.locator('a[href*="/library/"]').first()
   await first.click()
   await page.waitForURL('**/library/**')
-  await page.getByRole('button', { name: /^Shorter/ }).click()
-  await page.waitForSelector('text=/Updated|Version|Working/', { timeout: 30000 })
+  await page.getByRole('button', { name: /^短一点/ }).click()
+  await page.waitForSelector('text=/已更新|版本|处理中|v2/', { timeout: 30000 })
   await page.waitForTimeout(1500)
   // Ask AI: send a message and wait for reply
   await page.goto(BASE + `/projects/${pid}/ask`, { waitUntil: 'networkidle' })
@@ -40,21 +40,21 @@ async function run(viewport, tag) {
   if (shots) await page.screenshot({ path: `${shots}/${tag}-ask-reply.png` })
   // Memory: add fact via dialog
   await page.goto(BASE + `/projects/${pid}/memory`, { waitUntil: 'networkidle' })
-  await page.getByRole('button', { name: 'Add Fact' }).click()
-  await page.fill('input[placeholder="Token Supply"]', 'Audit')
+  await page.getByRole('button', { name: /添加事实/ }).click()
+  await page.fill('input[placeholder="例如：Token 总量"]', 'Audit')
   await page.locator('textarea').first().fill('CertiK')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await page.getByRole('button', { name: '保存', exact: true }).click()
   await page.waitForSelector('text=CertiK', { timeout: 10000 })
   // Generator: select template & generate
   await page.goto(BASE + `/projects/${pid}/generate?template=social-tweet`, { waitUntil: 'networkidle' })
-  await page.getByRole('button', { name: /^Generate$/ }).click()
-  await page.waitForSelector('text=Open in editor', { timeout: 30000 })
+  await page.getByRole('button', { name: /^生成$/ }).click()
+  await page.waitForSelector('text=/在编辑器中打开|打开编辑器/', { timeout: 30000 })
   if (shots) await page.screenshot({ path: `${shots}/${tag}-generated.png` })
   // Mobile menu
   if (viewport.width < 700) {
     await page.goto(BASE + `/projects/${pid}`, { waitUntil: 'networkidle' })
-    await page.click('button[aria-label="Open menu"]')
-    await page.locator('text=Content Generator').last().waitFor({ state: 'visible', timeout: 5000 })
+    await page.click('button[aria-label="打开菜单"]')
+    await page.locator('text=内容生成').last().waitFor({ state: 'visible', timeout: 5000 })
     if (shots) await page.screenshot({ path: `${shots}/${tag}-mobile-menu.png` })
   }
   await ctx.close()

@@ -50,9 +50,9 @@ export async function deleteProvider(orgId: string, id: string) {
 export async function testProvider(orgId: string, id: string) {
   const db = await getDb()
   const row = await db.query.aiProviders.findFirst({ where: and(eq(schema.aiProviders.id, id), eq(schema.aiProviders.orgId, orgId)) })
-  if (!row) throw new Error('Provider not found')
+  if (!row) throw new Error('Provider 不存在')
   const apiKey = row.apiKeyEnc ? decrypt(row.apiKeyEnc) : process.env[PROVIDER_META[row.provider]?.envKey ?? ''] ?? ''
-  if (!apiKey) throw new Error('No API key set')
+  if (!apiKey) throw new Error('尚未填写 API Key')
   const adapter = getAdapter(row.provider as ProviderKind)
   const creds = { kind: row.provider as ProviderKind, apiKey, baseUrl: row.baseUrl ?? undefined }
   const started = Date.now()
@@ -64,7 +64,7 @@ export async function testProvider(orgId: string, id: string) {
     console.warn('[ai] listModels failed', e)
   }
   const model = row.defaultModel || DEFAULT_MODELS[row.provider]?.fast || models[0]
-  const res = await adapter.chat(creds, { model: model!, messages: [{ role: 'user', content: 'Reply with the single word: OK' }], maxTokens: 20 })
+  const res = await adapter.chat(creds, { model: model!, messages: [{ role: 'user', content: '请只回复一个词：OK' }], maxTokens: 20 })
   return { ok: true, model, reply: res.text.trim().slice(0, 40), latencyMs: Date.now() - started, models: models.slice(0, 200) }
 }
 

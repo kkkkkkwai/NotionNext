@@ -53,7 +53,7 @@ export class JobRunner {
   async complete(result: Record<string, unknown> = {}) {
     const db = await getDb()
     const steps = this.job.steps.map((s) => ({ ...s, status: 'done' }))
-    await db.update(schema.generationJobs).set({ status: 'completed', progress: 100, step: 'Completed', steps, result: { ...this.job.result, ...result }, updatedAt: new Date() }).where(eq(schema.generationJobs.id, this.job.id))
+    await db.update(schema.generationJobs).set({ status: 'completed', progress: 100, step: '完成', steps, result: { ...this.job.result, ...result }, updatedAt: new Date() }).where(eq(schema.generationJobs.id, this.job.id))
   }
   async fail(err: unknown) {
     const db = await getDb()

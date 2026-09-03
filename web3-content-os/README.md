@@ -1,5 +1,7 @@
 # Web3 Brand & Content OS · Web3 项目智能内容中台
 
+> 界面为简体中文；AI 生成内容默认输出中文，可在生成时切换 8 种语言。
+
 > **Tell us about your project once. Your AI remembers everything.**
 > One Project. One AI Brain. Unlimited Content.
 

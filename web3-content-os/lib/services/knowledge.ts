@@ -41,34 +41,34 @@ export async function createTextSource(projectId: string, name: string, text: st
 export async function ingestSource(orgId: string, projectId: string, sourceId: string, opts: { onProgress?: (msg: string) => void } = {}) {
   const db = await getDb()
   const src = await db.query.projectSources.findFirst({ where: and(eq(schema.projectSources.id, sourceId), eq(schema.projectSources.projectId, projectId)) })
-  if (!src) throw new Error('Source not found')
+  if (!src) throw new Error('资料不存在')
   await db.update(schema.projectSources).set({ status: 'processing', error: null }).where(eq(schema.projectSources.id, sourceId))
   try {
-    opts.onProgress?.('Parsing ' + src.name)
+    opts.onProgress?.('正在解析 ' + src.name)
     let parsed: ParsedDocument
     if (src.type === 'file') {
-      if (!src.filePath || !fs.existsSync(src.filePath)) throw new Error('Uploaded file is missing on disk')
+      if (!src.filePath || !fs.existsSync(src.filePath)) throw new Error('上传的文件已不在服务器上')
       parsed = await parseBuffer(fs.readFileSync(src.filePath), src.name, src.mimeType ?? undefined)
     } else if (src.type === 'url' || src.type === 'gitbook') {
       parsed = await crawlSite(src.url!, src.type === 'gitbook' ? 25 : 12)
     } else {
       parsed = { title: src.name, text: String((src.meta as { text?: string }).text ?? '') }
     }
-    if (!parsed.text || parsed.text.length < 20) throw new Error('No readable text found in this source')
+    if (!parsed.text || parsed.text.length < 20) throw new Error('这份资料里没有可读取的文本')
 
     // Replace previous chunks/documents for this source (re-ingest support)
     await db.delete(schema.projectChunks).where(and(eq(schema.projectChunks.projectId, projectId), eq(schema.projectChunks.sourceId, sourceId)))
     await db.delete(schema.projectDocuments).where(and(eq(schema.projectDocuments.projectId, projectId), eq(schema.projectDocuments.sourceId, sourceId)))
     const [doc] = await db.insert(schema.projectDocuments).values({ projectId, sourceId, title: parsed.title || src.name, content: parsed.text, pageCount: parsed.pages?.length ?? null, charCount: parsed.text.length }).returning()
 
-    opts.onProgress?.('Chunking')
+    opts.onProgress?.('正在分块')
     const chunks: { content: string; section?: string; page?: number }[] = []
     if (parsed.pages && parsed.pages.length > 0) {
       for (const p of parsed.pages) for (const c of chunkText(p.text)) chunks.push({ ...c, page: p.page })
     } else {
       chunks.push(...chunkText(parsed.text))
     }
-    opts.onProgress?.(`Embedding ${chunks.length} chunks`)
+    opts.onProgress?.(`正在向量化 ${chunks.length} 个分块`)
     const { vectors, model, local } = await embedTexts({ orgId, projectId }, chunks.map((c) => c.content))
     const rows = chunks.map((c, i) => ({
       projectId, sourceId, documentId: doc.id, sourceName: src.name, content: c.content, embedding: vectors[i], page: c.page ?? null, section: c.section ?? null, chunkIndex: i,

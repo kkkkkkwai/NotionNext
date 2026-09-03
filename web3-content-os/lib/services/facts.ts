@@ -44,7 +44,7 @@ export async function getFact(projectId: string, factId: string) {
 export async function upsertFact(projectId: string, input: FactInput, actor: { by: string; force?: boolean }) {
   const db = await getDb()
   const key = normalizeKey(input.key)
-  if (!key) throw new Error('Fact key is required')
+  if (!key) throw new Error('事实的 key 不能为空')
   const value = input.value.trim()
   const existing = await db.query.projectFacts.findFirst({ where: and(eq(schema.projectFacts.projectId, projectId), eq(schema.projectFacts.key, key)) })
   if (!existing) {
@@ -106,10 +106,10 @@ export async function factHistory(projectId: string, factId: string) {
 export async function restoreFactVersion(projectId: string, factId: string, version: number, by: string) {
   const db = await getDb()
   const v = await db.query.projectFactVersions.findFirst({ where: and(eq(schema.projectFactVersions.factId, factId), eq(schema.projectFactVersions.version, version), eq(schema.projectFactVersions.projectId, projectId)) })
-  if (!v) throw new Error('Version not found')
+  if (!v) throw new Error('版本不存在')
   const fact = await getFact(projectId, factId)
-  if (!fact) throw new Error('Fact not found')
-  return upsertFact(projectId, { key: fact.key, value: v.newValue, source: 'restored', note: `Restored from v${version}` }, { by, force: true })
+  if (!fact) throw new Error('事实不存在')
+  return upsertFact(projectId, { key: fact.key, value: v.newValue, source: 'restored', note: `从 v${version} 恢复` }, { by, force: true })
 }
 
 export function guessCategory(key: string): FactCategory {

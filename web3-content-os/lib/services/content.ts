@@ -11,14 +11,14 @@ import { listFacts } from './facts'
 import type { ContentTemplate, Project } from '../db/schema'
 
 export const LANGUAGES: { code: string; label: string; native: string }[] = [
+  { code: 'zh', label: '中文', native: '中文' },
   { code: 'en', label: 'English', native: 'English' },
-  { code: 'zh', label: 'Chinese', native: '中文' },
-  { code: 'ko', label: 'Korean', native: '한국어' },
-  { code: 'ja', label: 'Japanese', native: '日本語' },
-  { code: 'vi', label: 'Vietnamese', native: 'Tiếng Việt' },
-  { code: 'th', label: 'Thai', native: 'ไทย' },
-  { code: 'ru', label: 'Russian', native: 'Русский' },
-  { code: 'es', label: 'Spanish', native: 'Español' }
+  { code: 'ko', label: '韩语', native: '한국어' },
+  { code: 'ja', label: '日语', native: '日本語' },
+  { code: 'vi', label: '越南语', native: 'Tiếng Việt' },
+  { code: 'th', label: '泰语', native: 'ไทย' },
+  { code: 'ru', label: '俄语', native: 'Русский' },
+  { code: 'es', label: '西班牙语', native: 'Español' }
 ]
 
 export const CONTENT_STATUSES = ['draft', 'review', 'approved', 'scheduled', 'published', 'archived'] as const
@@ -54,7 +54,7 @@ function detectMissing(text: string) {
 }
 
 export function templateInstructions(t: ContentTemplate | null | undefined, input: GenerateInput, project: Project) {
-  const lang = LANGUAGES.find((l) => l.code === (input.language ?? 'en'))
+  const lang = LANGUAGES.find((l) => l.code === (input.language ?? 'zh'))
   const lines = [
     `CONTENT TEMPLATE`,
     `- Content type: ${t?.name ?? input.contentType ?? 'custom'}`,
@@ -65,7 +65,7 @@ export function templateInstructions(t: ContentTemplate | null | undefined, inpu
     t?.structure ? `- Structure: ${t.structure}` : '',
     `- Length: ${input.length ?? t?.length ?? 'appropriate'}`,
     t?.requiredFacts?.length ? `- Required facts: ${t.requiredFacts.join(', ')} (if any is missing from PROJECT FACTS, write [Missing: <fact>] in place)` : '',
-    `- Language: ${lang ? `${lang.label} (${lang.native}) — native style, not literal translation; keep Web3 terms and the brand name/ticker as-is` : input.language ?? 'English'}`,
+    `- Language: ${lang ? `${lang.native} (${lang.code}) — native style, not literal translation; keep Web3 terms and the brand name/ticker as-is` : input.language ?? 'Chinese (Simplified)'}`,
     t?.promptInstructions ? `- Instructions: ${t.promptInstructions}` : '',
     input.angle ? `- Angle to use: ${input.angle}` : '- Angle: choose a fresh angle not used in recent content',
     input.brief ? `- Brief from the user: ${input.brief}` : '',
@@ -77,7 +77,7 @@ export function templateInstructions(t: ContentTemplate | null | undefined, inpu
 /** Generates a content item via template + dynamic project context, then saves it to the library. */
 export async function generateContent(ctx: { orgId: string; projectId: string; userId?: string | null }, input: GenerateInput): Promise<GeneratedContent> {
   const project = await getProject(ctx.orgId, ctx.projectId)
-  if (!project) throw new Error('Project not found')
+  if (!project) throw new Error('项目不存在')
   let template: ContentTemplate | null | undefined = null
   if (input.templateId) template = await getTemplate(input.templateId)
   else if (input.templateSlug) {
@@ -102,10 +102,10 @@ export async function generateContent(ctx: { orgId: string; projectId: string; u
   const db = await getDb()
   const [item] = await db.insert(schema.contentItems).values({
     projectId: ctx.projectId, templateId: template?.id ?? null, campaignId: input.campaignId ?? null, jobId: input.jobId ?? null, title, contentType: template?.contentType ?? input.contentType ?? 'custom',
-    category: template?.category ?? input.category ?? 'social', platform: input.platform ?? template?.platform ?? null, language: input.language ?? 'en', status: 'draft',
+    category: template?.category ?? input.category ?? 'social', platform: input.platform ?? template?.platform ?? null, language: input.language ?? 'zh', status: 'draft',
     tags: input.tags ?? [], folder: input.folder ?? null, angle: input.angle ?? null, factsUsed: built.factKeys, body, createdBy: ctx.userId ?? null
   }).returning()
-  await db.insert(schema.contentVersions).values({ contentId: item.id, projectId: ctx.projectId, version: 1, body, note: 'Generated', model: res.model, createdBy: ctx.userId ?? null })
+  await db.insert(schema.contentVersions).values({ contentId: item.id, projectId: ctx.projectId, version: 1, body, note: 'AI 生成', model: res.model, createdBy: ctx.userId ?? null })
   await touchProject(ctx.projectId)
   return { item, sources: built.sources, model: res.model, missing: detectMissing(body) }
 }
@@ -131,9 +131,9 @@ export const EDITOR_ACTIONS: { id: string; label: string; zh: string; instructio
 export async function editContent(ctx: { orgId: string; projectId: string; userId?: string | null }, contentId: string, action: string, opts: { targetLanguage?: string; instruction?: string; useMemory?: boolean; saveAsNew?: boolean } = {}) {
   const db = await getDb()
   const project = await getProject(ctx.orgId, ctx.projectId)
-  if (!project) throw new Error('Project not found')
+  if (!project) throw new Error('项目不存在')
   const item = await db.query.contentItems.findFirst({ where: and(eq(schema.contentItems.id, contentId), eq(schema.contentItems.projectId, ctx.projectId)) })
-  if (!item) throw new Error('Content not found')
+  if (!item) throw new Error('内容不存在')
   const def = EDITOR_ACTIONS.find((a) => a.id === action)
   const instruction = opts.instruction || def?.instruction || action
   const langLine = action === 'translate' ? `Target language: ${languageName(opts.targetLanguage ?? 'en')}.` : `Keep the language of the original (${languageName(item.language)}).`
@@ -149,23 +149,23 @@ export async function editContent(ctx: { orgId: string; projectId: string; userI
   const body = applyTerminology(res.text.trim(), terms)
   if (opts.saveAsNew || action === 'translate') {
     const [created] = await db.insert(schema.contentItems).values({
-      projectId: ctx.projectId, templateId: item.templateId, campaignId: item.campaignId, title: action === 'translate' ? `${item.title} (${languageName(opts.targetLanguage ?? 'en')})` : `${item.title} (${def?.label ?? action})`,
+      projectId: ctx.projectId, templateId: item.templateId, campaignId: item.campaignId, title: action === 'translate' ? `${item.title}（${languageName(opts.targetLanguage ?? 'en')}）` : `${item.title}（${def?.zh ?? def?.label ?? action}）`,
       contentType: item.contentType, category: item.category, platform: item.platform, language: action === 'translate' ? opts.targetLanguage ?? 'en' : item.language, status: 'draft', tags: item.tags, folder: item.folder, angle: item.angle,
       factsUsed: item.factsUsed, body, createdBy: ctx.userId ?? null
     }).returning()
-    await db.insert(schema.contentVersions).values({ contentId: created.id, projectId: ctx.projectId, version: 1, body, note: `${def?.label ?? action} of ${item.title}`, model: res.model, createdBy: ctx.userId ?? null })
+    await db.insert(schema.contentVersions).values({ contentId: created.id, projectId: ctx.projectId, version: 1, body, note: `${def?.zh ?? def?.label ?? action}：${item.title}`, model: res.model, createdBy: ctx.userId ?? null })
     return { item: created, created: true, model: res.model }
   }
   const version = item.currentVersion + 1
-  await db.insert(schema.contentVersions).values({ contentId: item.id, projectId: ctx.projectId, version, body, note: def?.label ?? action, model: res.model, createdBy: ctx.userId ?? null })
+  await db.insert(schema.contentVersions).values({ contentId: item.id, projectId: ctx.projectId, version, body, note: def?.zh ?? def?.label ?? action, model: res.model, createdBy: ctx.userId ?? null })
   const [updated] = await db.update(schema.contentItems).set({ body, currentVersion: version, updatedAt: new Date() }).where(eq(schema.contentItems.id, item.id)).returning()
   return { item: updated, created: false, model: res.model }
 }
 
-export async function saveContentBody(projectId: string, contentId: string, body: string, userId: string | null, note = 'Manual edit') {
+export async function saveContentBody(projectId: string, contentId: string, body: string, userId: string | null, note = '手动编辑') {
   const db = await getDb()
   const item = await db.query.contentItems.findFirst({ where: and(eq(schema.contentItems.id, contentId), eq(schema.contentItems.projectId, projectId)) })
-  if (!item) throw new Error('Content not found')
+  if (!item) throw new Error('内容不存在')
   if (item.body === body) return item
   const version = item.currentVersion + 1
   await db.insert(schema.contentVersions).values({ contentId, projectId, version, body, note, createdBy: userId })
@@ -220,8 +220,8 @@ export async function getContent(projectId: string, contentId: string) {
 export async function restoreContentVersion(projectId: string, contentId: string, version: number, userId: string | null) {
   const db = await getDb()
   const v = await db.query.contentVersions.findFirst({ where: and(eq(schema.contentVersions.contentId, contentId), eq(schema.contentVersions.version, version), eq(schema.contentVersions.projectId, projectId)) })
-  if (!v) throw new Error('Version not found')
-  return saveContentBody(projectId, contentId, v.body, userId, `Restored v${version}`)
+  if (!v) throw new Error('版本不存在')
+  return saveContentBody(projectId, contentId, v.body, userId, `恢复到 v${version}`)
 }
 
 export async function contentFacets(projectId: string) {

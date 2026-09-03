@@ -64,12 +64,12 @@ const READINESS_KEYS: Record<string, string[]> = {
 }
 
 const MISSING_LABELS: Record<string, string> = {
-  name: 'Project Name', positioning: 'Project Positioning', slogan: 'Slogan', brand_tone: 'Brand Tone', brand_keywords: 'Brand Keywords', mission: 'Mission',
-  narrative: 'Core Narrative', problem: 'Market Problem', solution: 'Solution', competitive_advantage: 'Competitive Advantage',
-  token_name: 'Token Name', token_symbol: 'Token Symbol', token_supply: 'Token Supply', token_utility: 'Token Utility', tokenomics: 'Tokenomics',
-  target_audience: 'Target Audience', selling_points: 'Key Selling Points', product: 'Product', website: 'Website', twitter: 'Twitter/X',
-  telegram: 'Telegram', discord: 'Discord', community: 'Community', community_strategy: 'Community Strategy',
-  launch_date: 'Launch Date', exchange: 'Exchange Information', roadmap: 'Roadmap', audit: 'Audit', contract_address: 'Contract Address'
+  name: '项目名称', positioning: '项目定位', slogan: 'Slogan', brand_tone: '品牌语气', brand_keywords: '品牌关键词', mission: '使命',
+  narrative: '核心叙事', problem: '市场问题', solution: '解决方案', competitive_advantage: '竞争优势',
+  token_name: '代币名称', token_symbol: '代币符号', token_supply: '代币总量', token_utility: '代币用途', tokenomics: '代币经济模型',
+  target_audience: '目标用户', selling_points: '核心卖点', product: '产品', website: '官网', twitter: 'Twitter/X',
+  telegram: 'Telegram', discord: 'Discord', community: '社区', community_strategy: '社区策略',
+  launch_date: '上线时间', exchange: '交易所信息', roadmap: '路线图', audit: '审计', contract_address: '合约地址'
 }
 
 /** Computes readiness from project fields, facts and DNA. Persists the result on the project. */

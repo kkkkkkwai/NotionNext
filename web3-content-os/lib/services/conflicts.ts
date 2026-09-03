@@ -21,9 +21,9 @@ export async function listConflicts(projectId: string, status: 'open' | 'all' = 
 export async function resolveConflict(projectId: string, conflictId: string, action: 'keep' | 'accept', userId: string) {
   const db = await getDb()
   const c = await db.query.projectFactConflicts.findFirst({ where: and(eq(schema.projectFactConflicts.id, conflictId), eq(schema.projectFactConflicts.projectId, projectId)) })
-  if (!c) throw new Error('Conflict not found')
+  if (!c) throw new Error('冲突记录不存在')
   if (action === 'accept') {
-    await upsertFact(projectId, { key: c.key, value: c.proposedValue, source: c.source ?? 'Accepted from document', sourceRef: c.sourceRef, note: `Accepted over "${c.currentValue}"` }, { by: userId, force: true })
+    await upsertFact(projectId, { key: c.key, value: c.proposedValue, source: c.source ?? '采用资料中的值', sourceRef: c.sourceRef, note: `替换原值 "${c.currentValue}"` }, { by: userId, force: true })
   }
   const [row] = await db.update(schema.projectFactConflicts).set({ status: action === 'accept' ? 'accepted' : 'kept', resolvedBy: userId, resolvedAt: new Date() }).where(eq(schema.projectFactConflicts.id, conflictId)).returning()
   return row

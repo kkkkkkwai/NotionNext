@@ -136,7 +136,7 @@ export async function crawlSite(entry: string, maxPages = 12): Promise<ParsedDoc
       if (pages.length === 0) throw e
     }
   }
-  if (pages.length === 0) throw new Error('No readable content found at ' + entry)
+  if (pages.length === 0) throw new Error('无法从该网址读取到内容：' + entry)
   return { title: title || root.hostname, text: pages.map((p) => p.text).join('\n\n'), pages: pages.map(({ page, text }) => ({ page, text })), meta: { urls: pages.map((p) => p.url) } }
 }
 
@@ -146,8 +146,8 @@ export async function parseBuffer(buf: Buffer, name: string, mime?: string): Pro
   if (ext === 'docx' || mime?.includes('wordprocessingml')) return parseDocx(buf, name)
   if (ext === 'pptx' || mime?.includes('presentationml')) return parsePptx(buf, name)
   if (['txt', 'md', 'markdown', 'csv', 'json'].includes(ext) || mime?.startsWith('text/')) return { title: name, text: cleanText(buf.toString('utf8')) }
-  if (ext === 'doc' || ext === 'ppt') throw new Error(`Legacy .${ext} files are not supported. Please export as .${ext}x or PDF.`)
-  throw new Error(`Unsupported file type: .${ext}`)
+  if (ext === 'doc' || ext === 'ppt') throw new Error(`不支持旧版 .${ext} 文件，请另存为 .${ext}x 或 PDF。`)
+  throw new Error(`不支持的文件类型：.${ext}`)
 }
 
 /** Splits text into overlapping chunks that respect paragraph boundaries. */

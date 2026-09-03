@@ -10,6 +10,7 @@ import { listMemories } from '@/lib/services/memory'
 import { ProjectOverview } from '@/components/project/overview'
 import { listConflicts } from '@/lib/services/conflicts'
 
+export const metadata = { title: '概览' }
 export const dynamic = 'force-dynamic'
 
 export default async function ProjectPage({ params, searchParams }: { params: { id: string }; searchParams: { job?: string } }) {

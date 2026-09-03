@@ -73,13 +73,13 @@ export function relativeTime(date: Date | string | null | undefined) {
   const d = typeof date === 'string' ? new Date(date) : date
   const diff = Date.now() - d.getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
+  if (m < 1) return '刚刚'
+  if (m < 60) return `${m} 分钟前`
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
+  if (h < 24) return `${h} 小时前`
   const days = Math.floor(h / 24)
-  if (days < 30) return `${days}d ago`
-  return d.toLocaleDateString()
+  if (days < 30) return `${days} 天前`
+  return d.toLocaleDateString('zh-CN')
 }
 
 /** Extracts a readable message from any error, including Drizzle query errors that hide the DB message in `cause`. */

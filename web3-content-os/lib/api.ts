@@ -14,7 +14,7 @@ export function json(data: unknown, init?: ResponseInit) {
 }
 
 export function errorResponse(err: unknown) {
-  if (err instanceof AuthError) return json({ error: 'Unauthorized' }, { status: 401 })
+  if (err instanceof AuthError) return json({ error: '未登录或登录已过期' }, { status: 401 })
   if (err instanceof AIError) return json({ error: err.message, provider: err.provider, code: err.status === 424 ? 'NO_PROVIDER' : 'AI_ERROR' }, { status: err.status >= 400 && err.status < 600 ? err.status : 500 })
   const message = describeError(err)
   console.error('[api]', err)
@@ -50,7 +50,7 @@ export function withProject(handler: (c: ProjectCtx) => Promise<Response>) {
   return withAuth(async (c) => {
     const id = c.params.id
     const project = await getProject(c.session.orgId, id)
-    if (!project) return json({ error: 'Project not found' }, { status: 404 })
+    if (!project) return json({ error: '项目不存在' }, { status: 404 })
     return handler({ ...c, project, ctx: { orgId: c.session.orgId, projectId: project.id, userId: c.session.userId } })
   })
 }

@@ -10,8 +10,8 @@ export interface XConfig { apiKey: string; apiSecret: string; accessToken: strin
 export type IntegrationConfig = TelegramConfig | XConfig
 
 export const INTEGRATION_META: Record<IntegrationKind, { label: string; fields: { key: string; label: string; secret?: boolean; hint?: string }[] }> = {
-  telegram: { label: 'Telegram', fields: [{ key: 'botToken', label: 'Bot token', secret: true, hint: 'From @BotFather' }, { key: 'chatId', label: 'Channel / chat id', hint: '@yourchannel or -100xxxxxxxxxx' }] },
-  x: { label: 'X (Twitter)', fields: [{ key: 'apiKey', label: 'API key (consumer key)', secret: true }, { key: 'apiSecret', label: 'API secret', secret: true }, { key: 'accessToken', label: 'Access token', secret: true }, { key: 'accessSecret', label: 'Access token secret', secret: true, hint: 'User context with Read+Write permissions' }] }
+  telegram: { label: 'Telegram', fields: [{ key: 'botToken', label: 'Bot Token', secret: true, hint: '从 @BotFather 获取' }, { key: 'chatId', label: '频道 / 群组 ID', hint: '@yourchannel 或 -100xxxxxxxxxx' }] },
+  x: { label: 'X (Twitter)', fields: [{ key: 'apiKey', label: 'API Key（Consumer Key）', secret: true }, { key: 'apiSecret', label: 'API Secret', secret: true }, { key: 'accessToken', label: 'Access Token', secret: true }, { key: 'accessSecret', label: 'Access Token Secret', secret: true, hint: '需要 Read + Write 权限的用户授权' }] }
 }
 
 export async function listIntegrations(projectId: string) {
@@ -34,7 +34,7 @@ export async function saveIntegration(projectId: string, kind: IntegrationKind, 
   const merged = { ...(existing ? safeConfig(existing.configEnc) : {}) }
   for (const [k, v] of Object.entries(config)) if (v && !v.includes('••')) merged[k] = v.trim()
   const missing = INTEGRATION_META[kind].fields.filter((f) => !merged[f.key]).map((f) => f.label)
-  if (missing.length) throw new Error('Missing: ' + missing.join(', '))
+  if (missing.length) throw new Error('缺少：' + missing.join('、'))
   const configEnc = encrypt(JSON.stringify(merged))
   if (existing) {
     const [row] = await db.update(schema.integrations).set({ configEnc, name: name || existing.name, enabled: true }).where(eq(schema.integrations.id, existing.id)).returning()
@@ -52,7 +52,7 @@ export async function deleteIntegration(projectId: string, kind: IntegrationKind
 async function getConfig<T extends IntegrationConfig>(projectId: string, kind: IntegrationKind): Promise<T> {
   const db = await getDb()
   const row = await db.query.integrations.findFirst({ where: and(eq(schema.integrations.projectId, projectId), eq(schema.integrations.kind, kind), eq(schema.integrations.enabled, true)) })
-  if (!row) throw new Error(`${INTEGRATION_META[kind].label} is not connected for this project`)
+  if (!row) throw new Error(`该项目尚未连接 ${INTEGRATION_META[kind].label}`)
   return safeConfig(row.configEnc) as unknown as T
 }
 
@@ -158,7 +158,7 @@ async function xPostThread(cfg: XConfig, texts: string[]) {
 export async function publishContent(projectId: string, contentId: string, channel: IntegrationKind) {
   const db = await getDb()
   const item = await db.query.contentItems.findFirst({ where: and(eq(schema.contentItems.id, contentId), eq(schema.contentItems.projectId, projectId)) })
-  if (!item) throw new Error('Content not found')
+  if (!item) throw new Error('内容不存在')
   const text = item.body.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').trim()
   try {
     const result = channel === 'telegram'

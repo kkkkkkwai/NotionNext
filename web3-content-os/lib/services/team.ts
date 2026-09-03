@@ -12,7 +12,7 @@ export async function getMembership(orgId: string, userId: string) {
 
 export async function requireRole(orgId: string, userId: string, allowed: Role[]) {
   const m = await getMembership(orgId, userId)
-  if (!m || !allowed.includes(m.role as Role)) throw new Error('You do not have permission for this action')
+  if (!m || !allowed.includes(m.role as Role)) throw new Error('你没有执行此操作的权限')
   return m
 }
 
@@ -31,12 +31,12 @@ export async function listInvites(orgId: string) {
 export async function inviteMember(orgId: string, invitedBy: string, email: string, role: Role) {
   const db = await getDb()
   const normalized = email.trim().toLowerCase()
-  if (!normalized.includes('@')) throw new Error('Invalid email')
-  if (role === 'owner') throw new Error('Ownership cannot be granted via invite')
+  if (!normalized.includes('@')) throw new Error('邮箱格式不正确')
+  if (role === 'owner') throw new Error('不能通过邀请授予所有者角色')
   const user = await db.query.users.findFirst({ where: eq(schema.users.email, normalized) })
   if (user) {
     const existing = await getMembership(orgId, user.id)
-    if (existing) throw new Error('This user is already a member')
+    if (existing) throw new Error('该用户已经是成员')
     await db.insert(schema.organizationMembers).values({ orgId, userId: user.id, role })
     return { added: true as const, email: normalized }
   }
@@ -63,7 +63,7 @@ export async function acceptInvitesFor(userId: string, email: string, token?: st
     }
     if (inv.status !== 'pending') continue
     if (inv.expiresAt && inv.expiresAt < new Date()) continue
-    if (token && inv.email !== email.toLowerCase()) throw new Error('This invite was sent to a different email address')
+    if (token && inv.email !== email.toLowerCase()) throw new Error('该邀请链接对应的是另一个邮箱')
     const existing = await getMembership(inv.orgId, userId)
     if (!existing) await db.insert(schema.organizationMembers).values({ orgId: inv.orgId, userId, role: inv.role })
     await db.update(schema.organizationInvites).set({ status: 'accepted' }).where(eq(schema.organizationInvites.id, inv.id))
@@ -76,9 +76,9 @@ export async function updateMemberRole(orgId: string, actorId: string, memberId:
   const db = await getDb()
   await requireRole(orgId, actorId, ['owner', 'admin'])
   const target = await db.query.organizationMembers.findFirst({ where: and(eq(schema.organizationMembers.id, memberId), eq(schema.organizationMembers.orgId, orgId)) })
-  if (!target) throw new Error('Member not found')
-  if (target.role === 'owner') throw new Error('The owner role cannot be changed')
-  if (role === 'owner') throw new Error('Use ownership transfer to assign an owner')
+  if (!target) throw new Error('成员不存在')
+  if (target.role === 'owner') throw new Error('所有者的角色不能修改')
+  if (role === 'owner') throw new Error('所有者角色需通过转让设置')
   await db.update(schema.organizationMembers).set({ role }).where(eq(schema.organizationMembers.id, memberId))
 }
 
@@ -86,8 +86,8 @@ export async function removeMember(orgId: string, actorId: string, memberId: str
   const db = await getDb()
   await requireRole(orgId, actorId, ['owner', 'admin'])
   const target = await db.query.organizationMembers.findFirst({ where: and(eq(schema.organizationMembers.id, memberId), eq(schema.organizationMembers.orgId, orgId)) })
-  if (!target) throw new Error('Member not found')
-  if (target.role === 'owner') throw new Error('The owner cannot be removed')
+  if (!target) throw new Error('成员不存在')
+  if (target.role === 'owner') throw new Error('不能移除所有者')
   await db.delete(schema.organizationMembers).where(eq(schema.organizationMembers.id, memberId))
 }
 

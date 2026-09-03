@@ -7,12 +7,12 @@ import { cn } from '@/lib/utils'
 export function JobProgress({ projectId, jobId, title, onDone, compact }: { projectId: string; jobId: string | null; title?: string; onDone?: (job: JobView) => void; compact?: boolean }) {
   const job = useJob(projectId, jobId, { onDone })
   if (!jobId) return null
-  if (!job) return <Card className="p-4 text-[13px] text-fg-muted"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Starting…</Card>
+  if (!job) return <Card className="p-4 text-[13px] text-fg-muted"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />正在启动…</Card>
   return (
     <Card className={cn('p-4', compact && 'p-3')}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="text-[13.5px] font-medium text-fg">{title ?? job.type.replace(/_/g, ' ')}</div>
-        <div className="text-[12px] text-fg-muted">{job.status === 'completed' ? 'Completed' : job.status === 'failed' ? 'Failed' : `${job.progress}%`}</div>
+        <div className="text-[12px] text-fg-muted">{job.status === 'completed' ? '已完成' : job.status === 'failed' ? '失败' : `${job.progress}%`}</div>
       </div>
       <Progress value={job.status === 'completed' ? 100 : job.progress} />
       {!compact ? (

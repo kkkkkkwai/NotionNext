@@ -60,7 +60,7 @@ async function log(ctx: RunContext, provider: string, model: string, usage: { in
 async function assertCredits(orgId: string, isSystemKey: boolean) {
   if (!isSystemKey) return
   const balance = await getBalance(orgId)
-  if (balance <= 0) throw new AIError('Your workspace has no platform credits left. Add your own API key in Settings → AI Providers, or top up credits in Settings → Billing.', 402)
+  if (balance <= 0) throw new AIError('工作区的平台 Credits 已用完。请到「设置 → AI 模型」添加自己的 API Key，或在「设置 → 账单」充值。', 402)
 }
 
 export async function runChat(ctx: RunContext, opts: RunOptions): Promise<ChatResult & { provider: string }> {

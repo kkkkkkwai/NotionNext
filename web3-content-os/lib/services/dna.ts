@@ -8,26 +8,26 @@ import { listMemories, listTerminology, listBrandRules, renderMemories } from '.
 import { getProject, computeReadiness, touchProject } from './projects'
 
 export const DNA_SECTIONS: { key: string; title: string; kind: 'text' | 'list' }[] = [
-  { key: 'project_overview', title: '01 Project Overview', kind: 'text' },
-  { key: 'one_sentence_positioning', title: '02 One Sentence Positioning', kind: 'text' },
-  { key: 'mission', title: '03 Mission', kind: 'text' },
-  { key: 'vision', title: '04 Vision', kind: 'text' },
-  { key: 'market_problem', title: '05 Market Problem', kind: 'text' },
-  { key: 'solution', title: '06 Solution', kind: 'text' },
-  { key: 'product', title: '07 Product', kind: 'text' },
-  { key: 'target_audience', title: '08 Target Audience', kind: 'list' },
-  { key: 'business_model', title: '09 Business Model', kind: 'text' },
-  { key: 'token_model', title: '10 Token Model', kind: 'text' },
-  { key: 'token_utility', title: '11 Token Utility', kind: 'list' },
-  { key: 'competitive_advantage', title: '12 Competitive Advantage', kind: 'list' },
-  { key: 'narrative', title: '13 Narrative', kind: 'text' },
-  { key: 'brand_keywords', title: '14 Brand Keywords', kind: 'list' },
-  { key: 'brand_tone', title: '15 Brand Tone', kind: 'text' },
-  { key: 'key_selling_points', title: '16 Key Selling Points', kind: 'list' },
-  { key: 'communication_rules', title: '17 Communication Rules', kind: 'list' },
-  { key: 'restricted_claims', title: '18 Restricted Claims', kind: 'list' },
-  { key: 'key_facts', title: '19 Key Facts', kind: 'list' },
-  { key: 'missing_information', title: '20 Missing Information', kind: 'list' }
+  { key: 'project_overview', title: '01 项目概述', kind: 'text' },
+  { key: 'one_sentence_positioning', title: '02 一句话定位', kind: 'text' },
+  { key: 'mission', title: '03 使命', kind: 'text' },
+  { key: 'vision', title: '04 愿景', kind: 'text' },
+  { key: 'market_problem', title: '05 市场问题', kind: 'text' },
+  { key: 'solution', title: '06 解决方案', kind: 'text' },
+  { key: 'product', title: '07 产品', kind: 'text' },
+  { key: 'target_audience', title: '08 目标用户', kind: 'list' },
+  { key: 'business_model', title: '09 商业模式', kind: 'text' },
+  { key: 'token_model', title: '10 代币模型', kind: 'text' },
+  { key: 'token_utility', title: '11 代币用途', kind: 'list' },
+  { key: 'competitive_advantage', title: '12 竞争优势', kind: 'list' },
+  { key: 'narrative', title: '13 叙事', kind: 'text' },
+  { key: 'brand_keywords', title: '14 品牌关键词', kind: 'list' },
+  { key: 'brand_tone', title: '15 品牌语气', kind: 'text' },
+  { key: 'key_selling_points', title: '16 核心卖点', kind: 'list' },
+  { key: 'communication_rules', title: '17 传播规则', kind: 'list' },
+  { key: 'restricted_claims', title: '18 禁止表述', kind: 'list' },
+  { key: 'key_facts', title: '19 关键事实', kind: 'list' },
+  { key: 'missing_information', title: '20 缺失信息', kind: 'list' }
 ]
 
 export type DnaData = Record<string, string | string[]>
@@ -59,7 +59,7 @@ export async function updateDnaSection(projectId: string, key: string, value: st
 /** Generates the Project DNA (single source of truth) from facts + knowledge base + memory. */
 export async function generateDna(ctx: { orgId: string; projectId: string; userId?: string | null }, opts: { language?: string } = {}) {
   const project = await getProject(ctx.orgId, ctx.projectId)
-  if (!project) throw new Error('Project not found')
+  if (!project) throw new Error('项目不存在')
   const [facts, memories, terms, rules] = await Promise.all([listFacts(ctx.projectId), listMemories(ctx.projectId), listTerminology(ctx.projectId), listBrandRules(ctx.projectId)])
   const queries = ['project overview mission vision', 'problem solution product features', 'tokenomics token utility supply allocation', 'target users audience market', 'competitive advantage differentiation technology', 'roadmap ecosystem partners investors']
   const knowledge: string[] = []
@@ -72,7 +72,7 @@ export async function generateDna(ctx: { orgId: string; projectId: string; userI
     }
     if (knowledge.join('').length > 30000) break
   }
-  const language = opts.language || (project.settings as { language?: string })?.language || 'auto'
+  const language = opts.language || (project.settings as { language?: string })?.language || 'Chinese (Simplified)'
   const prompt = `Build the PROJECT DNA — the single source of truth used for every future piece of content — for the Web3 project "${project.name}".
 
 PROJECT PROFILE:
@@ -112,12 +112,12 @@ Return JSON with exactly these keys:
  "key_facts": ["fact with source name when known"],
  "missing_information": ["what is missing and why it matters"]
 }
-Rules: write in ${language === 'auto' ? 'the dominant language of the provided materials (Chinese if materials are Chinese, otherwise English)' : language}. Never invent investors, partners, numbers, dates, exchanges or audits — put them in missing_information instead. Be specific, not generic.`
+Rules: write in ${language === 'auto' ? 'the dominant language of the provided materials (Chinese if materials are Chinese, otherwise English)' : language}. Keep product names, tickers and established Web3 terms as-is. Never invent investors, partners, numbers, dates, exchanges or audits — put them in missing_information instead. Be specific, not generic.`
   const { data, model } = await runJson<DnaData>({ ...ctx, taskType: 'dna' }, {
     messages: [{ role: 'system', content: GLOBAL_SYSTEM_PROMPT }, { role: 'user', content: prompt }],
     maxTokens: 6000, temperature: 0.4
   }, {})
-  if (!data || !data.project_overview) throw new Error('The model did not return a valid Project DNA. Try again or switch the DNA model in Settings → AI Providers.')
+  if (!data || !data.project_overview) throw new Error('模型没有返回有效的项目 DNA，请重试或在「设置 → AI 模型」中更换 DNA 使用的模型。')
   const row = await saveDna(ctx.projectId, data, { model, generatedBy: 'ai' })
   await computeReadiness(ctx.orgId, ctx.projectId)
   return row
