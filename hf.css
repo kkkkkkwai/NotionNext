@@ -173,3 +173,6 @@
 .hf .doc .body { flex-direction: column; align-items: flex-start; justify-content: center; }
 .hf .doc .meta { flex: none; }
 }
+
+.hf .video.yt { aspect-ratio: 16 / 9; background: #000; }
+.hf .video.yt iframe { display: block; width: 100%; height: 100%; border: 0; }
