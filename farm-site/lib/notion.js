@@ -5,21 +5,47 @@
 const API = 'https://api.notion.com/v1'
 const VERSION = '2022-06-28'
 
+// Notion 官方接口限速约每秒 3 次：同时最多 3 个请求，被限速时按 Retry-After 等待重试
+const MAX_ACTIVE = 3
+let active = 0
+const waiting = []
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+async function slot(fn) {
+  if (active >= MAX_ACTIVE) await new Promise(r => waiting.push(r))
+  active++
+  try {
+    return await fn()
+  } finally {
+    active--
+    waiting.shift()?.()
+  }
+}
+
 async function call(path, { method = 'GET', body } = {}) {
   const token = process.env.NOTION_TOKEN
   if (!token) throw new Error('缺少环境变量 NOTION_TOKEN')
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Notion-Version': VERSION,
-      'Content-Type': 'application/json'
-    },
-    body: body ? JSON.stringify(body) : undefined
-  })
-  const json = await res.json()
-  if (!res.ok) throw new Error(`Notion ${res.status}: ${json.message}`)
-  return json
+  for (let attempt = 0; ; attempt++) {
+    const res = await slot(() =>
+      fetch(`${API}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Notion-Version': VERSION,
+          'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined
+      })
+    )
+    if ((res.status === 429 || res.status >= 500) && attempt < 5) {
+      const wait = Number(res.headers.get('retry-after')) || 1 + attempt
+      await sleep(wait * 1000)
+      continue
+    }
+    const json = await res.json()
+    if (!res.ok) throw new Error(`Notion ${res.status}: ${json.message}`)
+    return json
+  }
 }
 
 async function queryAll(databaseId, body = {}) {
