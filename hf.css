@@ -177,3 +177,15 @@
 .hf .video.yt { aspect-ratio: 16 / 9; background: #000; }
 .hf .video.yt iframe { display: block; width: 100%; height: 100%; border: 0; }
 .hf .video.yt video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.hf a.card.info { display: block; padding: 0; overflow: hidden; text-decoration: none; }
+.hf .info img { width: 100%; height: auto; border-bottom: 3px solid #fff; }
+.hf .info .body { padding: 14px 18px 16px; }
+.hf .info h3 { margin: 0; font-size: 17px; font-weight: 900; color: var(--ink); }
+.hf .info p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.hf .psts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.hf .pst { position: relative; display: block; overflow: hidden; border-radius: 18px; border: 3px solid #fff; box-shadow: 0 4px 0 var(--line), 0 10px 20px rgba(60,90,60,.08); background: var(--meadow-2); text-decoration: none; }
+.hf .pst.v img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; }
+.hf .pst.h { grid-column: 1 / -1; }
+.hf .pst.h img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.hf .pst span { position: absolute; left: 8px; bottom: 8px; padding: 2px 10px; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--green-d); font-size: 12px; font-weight: 900; }
+@media (min-width: 640px) { .hf .psts { grid-template-columns: repeat(3, 1fr); } .hf .pst.h { grid-column: span 3; } }
